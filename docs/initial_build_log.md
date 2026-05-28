@@ -41,6 +41,16 @@ Date: 2026-05-29
 - Runtime forwarding: Next route handler `app/api/backend/[...path]/route.ts` forwards requests to `BACKEND_API_BASE_URL`, with `NEXT_PUBLIC_API_BASE_URL` kept only as a compatibility fallback.
 - Railway frontend variable after this fix: `BACKEND_API_BASE_URL=https://applyos-production-1e77.up.railway.app`.
 
+## V1.1 Workflow Gap Fix
+
+Date: 2026-05-29
+
+- Added resume text asset upload through `POST /resumes`; frontend supports `.txt` / `.md` files and pasted resume bullets.
+- Added daily curated role suggestions through `GET /daily/suggestions`.
+- Added one-click tracker intake through `POST /daily/suggestions/{suggestion_id}/add`.
+- Kept the safety boundary: suggestions are curated starter data, not live scraping or auto-apply automation.
+- Verification: `uv run ruff check .`, `uv run mypy app tests`, `uv run pytest`, `npm run typecheck`, and `npm run build`.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
@@ -53,6 +63,7 @@ Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
 - Deterministic Application Decision Agent fallback.
 - Optional OpenAI augmentation path guarded by placeholder `OPENAI_API_KEY`.
 - Next.js frontend with login/register, JD intake, selected-job analysis, decision package, daily actions, referral contact form, outreach draft generation, and summary tables.
+- V1.1 additions: resume upload, daily role push, and one-click add to tracker.
 - Root setup docs, backend/frontend env examples, Dockerfiles, and Docker Compose draft.
 
 ## Agent Boundary

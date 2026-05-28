@@ -12,6 +12,8 @@ It does not automate spam. It automates judgment: JD parsing, fit scoring, resum
 - Deterministic fallback decision agent that works without an API key.
 - Optional OpenAI augmentation when `OPENAI_API_KEY` is replaced with a real key.
 - Next.js frontend for daily job decisions, JD intake, decision packages, referral contacts, outreach drafts, and action queues.
+- Resume text asset upload for `.txt` / `.md` resume snapshots or pasted bullets.
+- Curated daily role suggestions with one-click add to the application tracker.
 
 ## Safety Boundary
 

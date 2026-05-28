@@ -4,7 +4,18 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import agent, applications, auth, contacts, dashboard, jobs, outreach, profile
+from app.api import (
+    agent,
+    applications,
+    auth,
+    contacts,
+    daily,
+    dashboard,
+    jobs,
+    outreach,
+    profile,
+    resumes,
+)
 from app.core.config import get_settings
 from app.db.session import init_db
 
@@ -28,11 +39,13 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(profile.router)
+app.include_router(resumes.router)
 app.include_router(jobs.router)
 app.include_router(contacts.router)
 app.include_router(applications.router)
 app.include_router(outreach.router)
 app.include_router(dashboard.router)
+app.include_router(daily.router)
 app.include_router(agent.router)
 
 

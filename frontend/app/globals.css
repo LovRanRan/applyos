@@ -284,6 +284,37 @@ dd {
   gap: 10px;
 }
 
+.suggestion-list {
+  display: grid;
+  gap: 10px;
+}
+
+.suggestion-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 12px;
+}
+
+.suggestion-card strong {
+  display: block;
+  font-size: 14px;
+}
+
+.suggestion-card p {
+  margin: 5px 0;
+  color: var(--ink);
+}
+
+.suggestion-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .action-row {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
@@ -378,6 +409,7 @@ td {
   .form-grid,
   .metrics,
   .breakdown,
+  .suggestion-card,
   dl {
     grid-template-columns: 1fr;
   }

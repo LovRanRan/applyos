@@ -62,6 +62,25 @@ export type OutreachMessage = {
   status: string;
 };
 
+export type ResumeAsset = {
+  id: number;
+  name: string;
+  source: string;
+  content: string;
+};
+
+export type DailyJobSuggestion = {
+  id: string;
+  company: string;
+  title: string;
+  location: string;
+  job_url: string;
+  jd_text: string;
+  reason: string;
+  suggested_resume: string;
+  score_hint: string;
+};
+
 export type AgentAnalysis = {
   role_category: string;
   visa_signal: string;
@@ -143,6 +162,13 @@ export const api = {
     payload: { name: string; company?: string; title?: string; relationship?: string; source?: string }
   ) => request<Contact>("/contacts", { method: "POST", body: JSON.stringify(payload) }, token),
   messages: (token: string) => request<OutreachMessage[]>("/outreach/messages", {}, token),
+  resumes: (token: string) => request<ResumeAsset[]>("/resumes", {}, token),
+  uploadResume: (token: string, payload: { name: string; content: string; source?: string }) =>
+    request<ResumeAsset>("/resumes", { method: "POST", body: JSON.stringify(payload) }, token),
+  dailySuggestions: (token: string) =>
+    request<DailyJobSuggestion[]>("/daily/suggestions", {}, token),
+  addSuggestion: (token: string, suggestionId: string) =>
+    request<Job>(`/daily/suggestions/${suggestionId}/add`, { method: "POST" }, token),
   generateMessage: (
     token: string,
     payload: { job_id?: number; contact_id?: number; message_type: string; context?: string }

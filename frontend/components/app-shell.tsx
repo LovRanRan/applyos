@@ -5,13 +5,25 @@ import {
   FileSearch,
   LogOut,
   MessageSquareText,
+  PlusCircle,
   RefreshCw,
   Send,
+  Upload,
   UserPlus
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { AgentAnalysis, api, Contact, DashboardSummary, Job, OutreachMessage, TodayAction } from "@/lib/api";
+import {
+  AgentAnalysis,
+  api,
+  Contact,
+  DailyJobSuggestion,
+  DashboardSummary,
+  Job,
+  OutreachMessage,
+  ResumeAsset,
+  TodayAction
+} from "@/lib/api";
 
 const demoJD =
   "Build LLM agent workflows with tool calling, retrieval, evals, Python APIs, and backend systems. Early career candidates welcome.";
@@ -25,6 +37,8 @@ export function ApplyOSApp() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [messages, setMessages] = useState<OutreachMessage[]>([]);
+  const [resumes, setResumes] = useState<ResumeAsset[]>([]);
+  const [suggestions, setSuggestions] = useState<DailyJobSuggestion[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const [lastAnalysis, setLastAnalysis] = useState<AgentAnalysis | null>(null);
@@ -36,18 +50,30 @@ export function ApplyOSApp() {
 
   async function refresh(nextToken = token) {
     if (!nextToken) return;
-    const [nextSummary, nextActions, nextJobs, nextContacts, nextMessages] = await Promise.all([
+    const [
+      nextSummary,
+      nextActions,
+      nextJobs,
+      nextContacts,
+      nextMessages,
+      nextResumes,
+      nextSuggestions
+    ] = await Promise.all([
       api.summary(nextToken),
       api.todayActions(nextToken),
       api.jobs(nextToken),
       api.contacts(nextToken),
-      api.messages(nextToken)
+      api.messages(nextToken),
+      api.resumes(nextToken),
+      api.dailySuggestions(nextToken)
     ]);
     setSummary(nextSummary);
     setActions(nextActions);
     setJobs(nextJobs);
     setContacts(nextContacts);
     setMessages(nextMessages);
+    setResumes(nextResumes);
+    setSuggestions(nextSuggestions);
     if (!selectedJobId && nextJobs[0]) setSelectedJobId(nextJobs[0].id);
     if (!selectedContactId && nextContacts[0]) setSelectedContactId(nextContacts[0].id);
   }
@@ -100,6 +126,49 @@ export function ApplyOSApp() {
       await refresh();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to add job");
+    }
+  }
+
+  async function uploadResume(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) return;
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const file = form.get("resume_file");
+    const pastedText = String(form.get("resume_text") || "").trim();
+    const fileText = file instanceof File && file.size > 0 ? await file.text() : "";
+    const content = (fileText || pastedText).trim();
+
+    if (content.length < 20) {
+      setStatus("Upload a .txt/.md resume or paste at least 20 characters.");
+      return;
+    }
+
+    try {
+      setStatus("Saving resume asset...");
+      await api.uploadResume(token, {
+        name: file instanceof File && file.name ? file.name : "Pasted resume profile",
+        content,
+        source: fileText ? "file upload" : "manual paste"
+      });
+      formElement.reset();
+      setStatus("Resume asset saved. It is available for future matching upgrades.");
+      await refresh();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Failed to save resume");
+    }
+  }
+
+  async function addSuggestedJob(suggestion: DailyJobSuggestion) {
+    if (!token) return;
+    try {
+      setStatus(`Adding ${suggestion.company} suggestion...`);
+      const job = await api.addSuggestion(token, suggestion.id);
+      setSelectedJobId(job.id);
+      setStatus("Suggested role added to tracker. Run analysis when ready.");
+      await refresh();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Failed to add suggestion");
     }
   }
 
@@ -223,6 +292,56 @@ export function ApplyOSApp() {
         <Metric label="Ready to apply" value={summary?.ready_to_apply ?? 0} />
         <Metric label="Follow-ups due" value={summary?.followups_due ?? 0} />
         <Metric label="Outreach drafts" value={summary?.outreach_drafts ?? 0} />
+      </section>
+
+      <section className="split-grid">
+        <section className="panel">
+          <div className="panel-title">
+            <Upload size={18} />
+            <h2>Resume Upload</h2>
+          </div>
+          <form className="stack" onSubmit={uploadResume}>
+            <label>
+              Upload .txt / .md resume
+              <input accept=".txt,.md,.markdown" name="resume_file" type="file" />
+            </label>
+            <label>
+              Or paste resume bullets
+              <textarea
+                name="resume_text"
+                placeholder="Paste your AI Agent / Backend resume bullets here..."
+                rows={4}
+              />
+            </label>
+            <button type="submit">
+              <Upload size={17} /> Save Resume
+            </button>
+          </form>
+          <p className="muted">{resumes.length} resume asset(s) saved.</p>
+        </section>
+
+        <section className="panel">
+          <div className="panel-title">
+            <PlusCircle size={18} />
+            <h2>Daily Role Push</h2>
+          </div>
+          <div className="suggestion-list">
+            {suggestions.map((suggestion) => (
+              <article className="suggestion-card" key={suggestion.id}>
+                <div>
+                  <strong>
+                    {suggestion.company} · {suggestion.title}
+                  </strong>
+                  <p>{suggestion.reason}</p>
+                  <span>{suggestion.score_hint}</span>
+                </div>
+                <button onClick={() => addSuggestedJob(suggestion)} type="button">
+                  <PlusCircle size={16} /> Add
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
       </section>
 
       <section className="main-grid">

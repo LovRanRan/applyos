@@ -67,6 +67,21 @@ class ProfileRead(ProfileBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ResumeAssetCreate(BaseModel):
+    name: str
+    content: str = Field(min_length=20)
+    source: str = "upload"
+
+
+class ResumeAssetRead(ResumeAssetCreate):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class JobCreate(BaseModel):
     company: str
     title: str
@@ -295,6 +310,18 @@ class TodayAction(BaseModel):
     title: str | None = None
     action: str
     due_date: date | None = None
+
+
+class DailyJobSuggestion(BaseModel):
+    id: str
+    company: str
+    title: str
+    location: str
+    job_url: str
+    jd_text: str
+    reason: str
+    suggested_resume: str
+    score_hint: str
 
 
 class InterviewPrepRequest(BaseModel):
