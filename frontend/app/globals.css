@@ -252,6 +252,63 @@ label textarea {
   font-size: 30px;
 }
 
+.workspace-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.tab-button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 13px;
+}
+
+.tab-button:hover {
+  border-color: var(--line);
+  background: var(--surface-soft);
+  color: var(--blue);
+}
+
+.tab-button.active {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
+.tab-button span {
+  white-space: nowrap;
+}
+
+.tab-surface {
+  margin-top: 16px;
+}
+
+.tab-panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 16px;
+  align-items: start;
+}
+
+.tab-panel-grid.even {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tab-side {
+  display: grid;
+  gap: 16px;
+}
+
 .command-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 390px;
@@ -271,6 +328,10 @@ label textarea {
   border-radius: 8px;
   padding: 18px;
   box-shadow: var(--shadow);
+}
+
+.compact-panel {
+  align-self: start;
 }
 
 .section-title {
@@ -651,6 +712,8 @@ dd {
   }
 
   .command-layout,
+  .tab-panel-grid,
+  .tab-panel-grid.even,
   .workbench-grid,
   .tracker-grid {
     grid-template-columns: 1fr;
@@ -680,10 +743,12 @@ dd {
   .app-header,
   .auth-grid,
   .form-grid,
-  .form-grid.compact,
-  .metrics,
-  .side-column,
-  .match-card,
+    .form-grid.compact,
+    .metrics,
+    .tab-panel-grid,
+    .tab-panel-grid.even,
+    .side-column,
+    .match-card,
   .match-heading,
   .breakdown,
   dl,

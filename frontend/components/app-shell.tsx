@@ -53,6 +53,7 @@ const defaultProfile: ProfilePayload = {
 };
 
 type NoticeTone = "neutral" | "success" | "warning";
+type TabId = "matches" | "workbench" | "profile" | "analytics" | "outreach";
 
 function formatList(values: string[]) {
   return values.join("\n");
@@ -94,6 +95,7 @@ export function ApplyOSApp() {
     text: "Backend: not connected yet"
   });
   const [addingSuggestionId, setAddingSuggestionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>("matches");
 
   const selectedJob = useMemo(
     () => jobs.find((job) => job.id === selectedJobId) ?? jobs[0],
@@ -432,9 +434,43 @@ export function ApplyOSApp() {
         <Metric label="Profile ready" value={`${profileCompleteness}%`} icon={<UserRoundCog />} />
       </section>
 
-      <section className="command-layout">
-        <div className="primary-column">
-          <section className="panel">
+      <nav aria-label="ApplyOS workspace sections" className="workspace-tabs">
+        <TabButton
+          active={activeTab === "matches"}
+          icon={<Sparkles size={16} />}
+          label="Daily Matches"
+          onClick={() => setActiveTab("matches")}
+        />
+        <TabButton
+          active={activeTab === "workbench"}
+          icon={<FileSearch size={16} />}
+          label="JD Workbench"
+          onClick={() => setActiveTab("workbench")}
+        />
+        <TabButton
+          active={activeTab === "profile"}
+          icon={<UserRoundCog size={16} />}
+          label="Profile & Resume"
+          onClick={() => setActiveTab("profile")}
+        />
+        <TabButton
+          active={activeTab === "analytics"}
+          icon={<BarChart3 size={16} />}
+          label="Analytics"
+          onClick={() => setActiveTab("analytics")}
+        />
+        <TabButton
+          active={activeTab === "outreach"}
+          icon={<UsersRound size={16} />}
+          label="Outreach & Tracker"
+          onClick={() => setActiveTab("outreach")}
+        />
+      </nav>
+
+      <section className="tab-surface">
+        {activeTab === "matches" ? (
+          <div className="tab-panel-grid">
+            <section className="panel">
             <SectionTitle
               icon={<Sparkles size={18} />}
               kicker="Daily role push"
@@ -452,8 +488,16 @@ export function ApplyOSApp() {
               ))}
             </div>
           </section>
+            <div className="tab-side">
+              <ActionsPanel actions={actions} />
+              <TechStackPanel analytics={analytics} />
+            </div>
+          </div>
+        ) : null}
 
-          <section className="panel workbench-panel">
+        {activeTab === "workbench" ? (
+          <div className="tab-panel-grid">
+            <section className="panel workbench-panel">
             <SectionTitle
               icon={<FileSearch size={18} />}
               kicker="Manual intake"
@@ -496,32 +540,53 @@ export function ApplyOSApp() {
               <DecisionPanel analysis={lastAnalysis} selectedJob={selectedJob} />
             </div>
           </section>
-
-          <section className="panel">
+            <section className="panel compact-panel">
             <SectionTitle
               icon={<BriefcaseBusiness size={18} />}
-              kicker="Tracker"
-              title="Jobs and outreach records"
+              kicker="Selection"
+              title="Saved jobs"
               action={`${jobs.length} jobs`}
             />
-            <div className="tracker-grid">
-              <JobList jobs={jobs} onSelect={setSelectedJobId} selectedJobId={selectedJobId} />
-              <ContactAndDrafts contacts={contacts} messages={messages} />
-            </div>
+            <JobList jobs={jobs} onSelect={setSelectedJobId} selectedJobId={selectedJobId} />
           </section>
-        </div>
+          </div>
+        ) : null}
 
-        <aside className="side-column">
-          <ProfilePanel profile={profile} profileForm={profileForm} onSubmit={saveProfile} />
-          <ResumePanel onSubmit={uploadResume} resumes={resumes} />
-          <TechStackPanel analytics={analytics} />
-          <ActionsPanel actions={actions} />
-          <ReferralPanel
-            generateDraft={generateDraft}
-            onSubmit={addContact}
-            selectedContactId={selectedContactId}
-          />
-        </aside>
+        {activeTab === "profile" ? (
+          <div className="tab-panel-grid even">
+            <ProfilePanel profile={profile} profileForm={profileForm} onSubmit={saveProfile} />
+            <ResumePanel onSubmit={uploadResume} resumes={resumes} />
+          </div>
+        ) : null}
+
+        {activeTab === "analytics" ? (
+          <div className="tab-panel-grid even">
+            <TechStackPanel analytics={analytics} />
+            <ActionsPanel actions={actions} />
+          </div>
+        ) : null}
+
+        {activeTab === "outreach" ? (
+          <div className="tab-panel-grid even">
+            <ReferralPanel
+              generateDraft={generateDraft}
+              onSubmit={addContact}
+              selectedContactId={selectedContactId}
+            />
+            <section className="panel">
+              <SectionTitle
+                icon={<Send size={18} />}
+                kicker="Tracker"
+                title="Jobs, contacts, and drafts"
+                action={`${jobs.length} jobs`}
+              />
+              <div className="tracker-grid">
+                <JobList jobs={jobs} onSelect={setSelectedJobId} selectedJobId={selectedJobId} />
+                <ContactAndDrafts contacts={contacts} messages={messages} />
+              </div>
+            </section>
+          </div>
+        ) : null}
       </section>
     </main>
   );
@@ -546,6 +611,30 @@ function Metric({
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
+  );
+}
+
+function TabButton({
+  active,
+  icon,
+  label,
+  onClick
+}: {
+  active: boolean;
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-pressed={active}
+      className={`tab-button ${active ? "active" : ""}`}
+      onClick={onClick}
+      type="button"
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
 

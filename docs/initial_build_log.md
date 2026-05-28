@@ -73,6 +73,16 @@ Date: 2026-05-29
 - Online smoke test through the deployed frontend proxy: register -> save profile -> get 4 daily suggestions -> first suggestion score `98` -> one-click add Anthropic role -> analytics returns top terms `AWS`, `Backend APIs`, `Evals`, `LLM Agents`.
 - Note: the bare `/` route may remain edge-cached briefly; use hard refresh or a cache-busted URL immediately after deployment.
 
+## V2 Tabbed Workspace Fix
+
+Date: 2026-05-29
+
+- Problem: V2 command center still packed daily matches, workbench, profile, resume, analytics, referral, and tracker into one crowded screen.
+- Fix: introduced a top-level tab workspace: `Daily Matches`, `JD Workbench`, `Profile & Resume`, `Analytics`, and `Outreach & Tracker`.
+- The metrics bar and status notice stay global; detailed panels only render inside the active tab.
+- Browser smoke test: register -> confirm tabs render -> switch JD Workbench / Profile & Resume / Analytics and verify unrelated panels are not visible.
+- Verification: `npm run build`; `npm run typecheck`.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
