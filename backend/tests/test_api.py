@@ -27,6 +27,22 @@ def test_protected_job_flow(client: TestClient, auth_headers: dict[str, str]) ->
     assert jobs.status_code == 200
     assert jobs.json()[0]["recommended_resume"] is not None
 
+    brief = client.get("/agent/brief", headers=auth_headers)
+    assert brief.status_code == 200
+    assert brief.json()["priorities"]
+
+    ask = client.post(
+        "/agent/ask",
+        headers=auth_headers,
+        json={"question": "Should I seek referral first?", "selected_job_id": job_id},
+    )
+    assert ask.status_code == 200
+    assert ask.json()["next_actions"]
+
+    gap = client.get(f"/agent/resume-gap/{job_id}", headers=auth_headers)
+    assert gap.status_code == 200
+    assert gap.json()["resume_version"]
+
     contact = client.post(
         "/contacts",
         headers=auth_headers,

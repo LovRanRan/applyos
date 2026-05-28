@@ -293,6 +293,42 @@ class AgentAnalysis(BaseModel):
     source: str = "deterministic_fallback"
 
 
+class AgentBriefItem(BaseModel):
+    title: str
+    detail: str
+    severity: str = "info"
+
+
+class AgentBrief(BaseModel):
+    headline: str
+    priorities: list[AgentBriefItem]
+    observations: list[str]
+    recommended_actions: list[str]
+    activity: list[str]
+
+
+class AgentAskRequest(BaseModel):
+    question: str = Field(min_length=3)
+    selected_job_id: int | None = None
+
+
+class AgentAskResponse(BaseModel):
+    answer: str
+    next_actions: list[str]
+    referenced_jobs: list[str] = Field(default_factory=list)
+    activity: list[str] = Field(default_factory=list)
+
+
+class ResumeGapResponse(BaseModel):
+    job_id: int
+    resume_version: str
+    covered_terms: list[str]
+    missing_terms: list[str]
+    suggested_edits: list[str]
+    project_emphasis: list[str]
+    activity: list[str]
+
+
 class DashboardSummary(BaseModel):
     total_jobs: int
     high_readiness_jobs: int

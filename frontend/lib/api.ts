@@ -134,6 +134,37 @@ export type AgentAnalysis = {
   source: string;
 };
 
+export type AgentBriefItem = {
+  title: string;
+  detail: string;
+  severity: string;
+};
+
+export type AgentBrief = {
+  headline: string;
+  priorities: AgentBriefItem[];
+  observations: string[];
+  recommended_actions: string[];
+  activity: string[];
+};
+
+export type AgentAskResponse = {
+  answer: string;
+  next_actions: string[];
+  referenced_jobs: string[];
+  activity: string[];
+};
+
+export type ResumeGap = {
+  job_id: number;
+  resume_version: string;
+  covered_terms: string[];
+  missing_terms: string[];
+  suggested_edits: string[];
+  project_emphasis: string[];
+  activity: string[];
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -206,6 +237,11 @@ export const api = {
     request<Job>(`/daily/suggestions/${suggestionId}/add`, { method: "POST" }, token),
   techStackAnalytics: (token: string) =>
     request<TechStackAnalytics>("/analytics/tech-stack", {}, token),
+  agentBrief: (token: string) => request<AgentBrief>("/agent/brief", {}, token),
+  askAgent: (token: string, payload: { question: string; selected_job_id?: number }) =>
+    request<AgentAskResponse>("/agent/ask", { method: "POST", body: JSON.stringify(payload) }, token),
+  resumeGap: (token: string, jobId: number) =>
+    request<ResumeGap>(`/agent/resume-gap/${jobId}`, {}, token),
   generateMessage: (
     token: string,
     payload: { job_id?: number; contact_id?: number; message_type: string; context?: string }

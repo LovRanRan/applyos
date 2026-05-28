@@ -20,10 +20,19 @@ import {
   UserRoundCog,
   UsersRound
 } from "lucide-react";
-import { FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
 
 import {
   AgentAnalysis,
+  AgentAskResponse,
+  AgentBrief,
   api,
   ApiError,
   Contact,
@@ -34,6 +43,7 @@ import {
   Profile,
   ProfilePayload,
   ResumeAsset,
+  ResumeGap,
   TechStackAnalytics,
   TodayAction
 } from "@/lib/api";
@@ -53,7 +63,9 @@ const defaultProfile: ProfilePayload = {
 };
 
 type NoticeTone = "neutral" | "success" | "warning";
-type TabId = "matches" | "workbench" | "profile" | "analytics" | "outreach";
+type TabId = "agent" | "matches" | "workbench" | "profile" | "analytics" | "outreach";
+type ChatMessage = { role: "user" | "agent"; text: string };
+type AgentEvent = { id: string; title: string; detail: string; status: "done" | "working" };
 
 function formatList(values: string[]) {
   return values.join("\n");
@@ -87,15 +99,28 @@ export function ApplyOSApp() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileForm, setProfileForm] = useState<ProfilePayload>(defaultProfile);
   const [analytics, setAnalytics] = useState<TechStackAnalytics | null>(null);
+  const [agentBrief, setAgentBrief] = useState<AgentBrief | null>(null);
+  const [resumeGap, setResumeGap] = useState<ResumeGap | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const [lastAnalysis, setLastAnalysis] = useState<AgentAnalysis | null>(null);
+  const [chatInput, setChatInput] = useState("What should I do next?");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      role: "agent",
+      text: "Select a job or add a daily match, then ask me about fit, resume gaps, referral timing, or next actions."
+    }
+  ]);
+  const [agentEvents, setAgentEvents] = useState<AgentEvent[]>([]);
   const [notice, setNotice] = useState({
     tone: "neutral" as NoticeTone,
     text: "Backend: not connected yet"
   });
   const [addingSuggestionId, setAddingSuggestionId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>("matches");
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [successAction, setSuccessAction] = useState<string | null>(null);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>("agent");
 
   const selectedJob = useMemo(
     () => jobs.find((job) => job.id === selectedJobId) ?? jobs[0],
@@ -119,6 +144,20 @@ export function ApplyOSApp() {
     setNotice({ text, tone });
   }
 
+  function logAgent(title: string, detail: string, status: AgentEvent["status"] = "done") {
+    setAgentEvents((current) =>
+      [{ id: `${Date.now()}-${title}`, title, detail, status }, ...current].slice(0, 10)
+    );
+  }
+
+  function finishAction(actionId: string) {
+    setBusyAction(null);
+    setSuccessAction(actionId);
+    window.setTimeout(() => {
+      setSuccessAction((current) => (current === actionId ? null : current));
+    }, 1600);
+  }
+
   async function refresh(nextToken = token) {
     if (!nextToken) return;
     const profileRequest = api.profile(nextToken).catch((error: unknown) => {
@@ -134,6 +173,7 @@ export function ApplyOSApp() {
       nextResumes,
       nextSuggestions,
       nextAnalytics,
+      nextBrief,
       nextProfile
     ] = await Promise.all([
       api.summary(nextToken),
@@ -144,6 +184,7 @@ export function ApplyOSApp() {
       api.resumes(nextToken),
       api.dailySuggestions(nextToken),
       api.techStackAnalytics(nextToken),
+      api.agentBrief(nextToken),
       profileRequest
     ]);
     setSummary(nextSummary);
@@ -154,6 +195,7 @@ export function ApplyOSApp() {
     setResumes(nextResumes);
     setSuggestions(nextSuggestions);
     setAnalytics(nextAnalytics);
+    setAgentBrief(nextBrief);
     if (nextProfile) {
       setProfile(nextProfile);
       setProfileForm({
@@ -183,7 +225,9 @@ export function ApplyOSApp() {
   }, []);
 
   async function authenticate(mode: "login" | "register") {
+    const actionId = mode;
     try {
+      setBusyAction(actionId);
       pushNotice(mode === "login" ? "Logging in..." : "Creating account...");
       const response =
         mode === "login"
@@ -193,7 +237,10 @@ export function ApplyOSApp() {
       setToken(response.access_token);
       pushNotice("Connected. Profile, resume, and daily matches are ready.", "success");
       await refresh(response.access_token);
+      logAgent("Session started", "Loaded profile, resume assets, daily matches, and agent brief.");
+      finishAction(actionId);
     } catch (error) {
+      setBusyAction(null);
       pushNotice(error instanceof Error ? error.message : "Authentication failed", "warning");
     }
   }
@@ -213,13 +260,18 @@ export function ApplyOSApp() {
       notes: String(form.get("notes") || "")
     };
     try {
+      setBusyAction("save-profile");
       pushNotice("Saving profile and recalculating daily matches...");
       const saved = await api.saveProfile(token, payload);
       setProfile(saved);
       setProfileForm(payload);
+      setProfileEditing(false);
       await refresh();
+      logAgent("Profile locked", "Saved candidate profile and refreshed resume-aware matches.");
       pushNotice("Profile saved. Daily matches now use this profile.", "success");
+      finishAction("save-profile");
     } catch (error) {
+      setBusyAction(null);
       pushNotice(error instanceof Error ? error.message : "Failed to save profile", "warning");
     }
   }
@@ -240,6 +292,7 @@ export function ApplyOSApp() {
     }
 
     try {
+      setBusyAction("upload-resume");
       pushNotice("Saving resume and refreshing match scores...");
       await api.uploadResume(token, {
         name: file instanceof File && file.name ? file.name : "Pasted resume profile",
@@ -248,8 +301,11 @@ export function ApplyOSApp() {
       });
       formElement.reset();
       await refresh();
+      logAgent("Resume evidence updated", "Saved resume text and refreshed daily match scores.");
       pushNotice("Resume saved. Daily matches now include resume evidence.", "success");
+      finishAction("upload-resume");
     } catch (error) {
+      setBusyAction(null);
       pushNotice(error instanceof Error ? error.message : "Failed to save resume", "warning");
     }
   }
@@ -263,8 +319,13 @@ export function ApplyOSApp() {
       setSelectedJobId(job.id);
       setLastAnalysis(null);
       await refresh();
+      setActiveTab("workbench");
+      logAgent(
+        "Decision package created",
+        `${suggestion.company} was added with score ${suggestion.match_score} and a next action.`
+      );
       pushNotice(
-        `${suggestion.company} added. Stats, tracker, and tech stack chart refreshed.`,
+        `${suggestion.company} added. Decision package, tracker, and tech stack chart refreshed.`,
         "success"
       );
     } catch (error) {
@@ -280,7 +341,8 @@ export function ApplyOSApp() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
-      pushNotice("Saving job and refreshing dashboard...");
+      setBusyAction("save-job");
+      pushNotice("Saving job, then generating the decision package...");
       const job = await api.createJob(token, {
         company: String(form.get("company") || ""),
         title: String(form.get("title") || ""),
@@ -289,11 +351,17 @@ export function ApplyOSApp() {
         source: "manual",
         jd_text: String(form.get("jd_text") || "")
       });
+      const analysis = await api.analyzeJob(token, job.id);
       setSelectedJobId(job.id);
+      setLastAnalysis(analysis);
       formElement.reset();
       await refresh();
-      pushNotice("Job saved. Run analysis when you are ready.", "success");
+      setActiveTab("workbench");
+      logAgent("Manual JD analyzed", `${job.company} was saved and scored automatically.`);
+      pushNotice("Job saved and analyzed. Decision package is ready.", "success");
+      finishAction("save-job");
     } catch (error) {
+      setBusyAction(null);
       pushNotice(error instanceof Error ? error.message : "Failed to add job", "warning");
     }
   }
@@ -301,12 +369,16 @@ export function ApplyOSApp() {
   async function analyzeSelectedJob() {
     if (!token || !selectedJob) return;
     try {
+      setBusyAction("analyze-job");
       pushNotice(`Analyzing ${selectedJob.company}...`);
       const analysis = await api.analyzeJob(token, selectedJob.id);
       setLastAnalysis(analysis);
       await refresh();
+      logAgent("Decision package refreshed", `${selectedJob.company} was rescored and updated.`);
       pushNotice("Decision package generated. Review before any external action.", "success");
+      finishAction("analyze-job");
     } catch (error) {
+      setBusyAction(null);
       pushNotice(error instanceof Error ? error.message : "Analysis failed", "warning");
     }
   }
@@ -317,6 +389,7 @@ export function ApplyOSApp() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
+      setBusyAction("save-contact");
       const contact = await api.createContact(token, {
         name: String(form.get("name") || ""),
         company: String(form.get("company") || ""),
@@ -327,8 +400,11 @@ export function ApplyOSApp() {
       setSelectedContactId(contact.id);
       formElement.reset();
       await refresh();
+      logAgent("Contact saved", `${contact.name} is available for referral drafting.`);
       pushNotice("Contact saved. Draft generation is available.", "success");
+      finishAction("save-contact");
     } catch (error) {
+      setBusyAction(null);
       pushNotice(error instanceof Error ? error.message : "Failed to add contact", "warning");
     }
   }
@@ -336,6 +412,7 @@ export function ApplyOSApp() {
   async function generateDraft() {
     if (!token) return;
     try {
+      setBusyAction("draft-message");
       pushNotice("Drafting outreach message...");
       await api.generateMessage(token, {
         job_id: selectedJobId ?? undefined,
@@ -344,9 +421,74 @@ export function ApplyOSApp() {
         context: "the role appears aligned with AI agent infrastructure and backend systems"
       });
       await refresh();
+      logAgent("Outreach drafted", "Generated a referral draft for manual review only.");
       pushNotice("Draft created. Nothing was sent externally.", "success");
+      finishAction("draft-message");
     } catch (error) {
+      setBusyAction(null);
       pushNotice(error instanceof Error ? error.message : "Failed to draft outreach", "warning");
+    }
+  }
+
+  async function manualRefresh() {
+    if (!token) return;
+    try {
+      setBusyAction("refresh");
+      pushNotice("Refreshing workspace...");
+      await refresh();
+      logAgent("Workspace refreshed", "Pulled latest jobs, actions, matches, and analytics.");
+      pushNotice("Workspace refreshed.", "success");
+      finishAction("refresh");
+    } catch (error) {
+      setBusyAction(null);
+      pushNotice(error instanceof Error ? error.message : "Refresh failed", "warning");
+    }
+  }
+
+  async function askApplyOS(event?: FormEvent<HTMLFormElement>, forcedQuestion?: string) {
+    event?.preventDefault();
+    if (!token) return;
+    const question = (forcedQuestion ?? chatInput).trim();
+    if (!question) return;
+    try {
+      setBusyAction("ask-agent");
+      setChatMessages((current) => [...current, { role: "user", text: question }]);
+      setChatInput("");
+      const response: AgentAskResponse = await api.askAgent(token, {
+        question,
+        selected_job_id: selectedJob?.id
+      });
+      setChatMessages((current) => [
+        ...current,
+        {
+          role: "agent",
+          text: `${response.answer}\n\nNext: ${response.next_actions.join(" • ")}`
+        }
+      ]);
+      response.activity.forEach((item) => logAgent("Ask ApplyOS", item));
+      finishAction("ask-agent");
+    } catch (error) {
+      setBusyAction(null);
+      pushNotice(error instanceof Error ? error.message : "Ask ApplyOS failed", "warning");
+    }
+  }
+
+  async function runResumeGap() {
+    if (!token || !selectedJob) {
+      pushNotice("Select or add a job before running Resume Gap.", "warning");
+      return;
+    }
+    try {
+      setBusyAction("resume-gap");
+      pushNotice(`Checking resume gaps for ${selectedJob.company}...`);
+      const gap = await api.resumeGap(token, selectedJob.id);
+      setResumeGap(gap);
+      gap.activity.forEach((item) => logAgent("Resume Gap", item));
+      pushNotice("Resume Gap generated. Review suggestions before editing resume.", "success");
+      finishAction("resume-gap");
+    } catch (error) {
+      setBusyAction(null);
+      pushNotice(error instanceof Error ? error.message : "Resume Gap failed", "warning");
     }
   }
 
@@ -375,12 +517,31 @@ export function ApplyOSApp() {
             </label>
           </div>
           <div className="button-row">
-            <button onClick={() => authenticate("login")} type="button">
+            <ActionButton
+              actionId="login"
+              busyAction={busyAction}
+              icon={<ClipboardCheck size={18} />}
+              loadingLabel="Logging in"
+              onClick={() => authenticate("login")}
+              successAction={successAction}
+              successLabel="Logged in"
+              type="button"
+            >
               <ClipboardCheck size={18} /> Login
-            </button>
-            <button className="secondary" onClick={() => authenticate("register")} type="button">
+            </ActionButton>
+            <ActionButton
+              actionId="register"
+              busyAction={busyAction}
+              className="secondary"
+              icon={<UsersRound size={18} />}
+              loadingLabel="Creating"
+              onClick={() => authenticate("register")}
+              successAction={successAction}
+              successLabel="Created"
+              type="button"
+            >
               <UsersRound size={18} /> Register
-            </button>
+            </ActionButton>
           </div>
           <Notice notice={notice} />
         </section>
@@ -400,9 +561,18 @@ export function ApplyOSApp() {
           </p>
         </div>
         <div className="header-actions">
-          <button onClick={() => refresh()} type="button">
+          <ActionButton
+            actionId="refresh"
+            busyAction={busyAction}
+            icon={<RefreshCw size={17} />}
+            loadingLabel="Refreshing"
+            onClick={manualRefresh}
+            successAction={successAction}
+            successLabel="Refreshed"
+            type="button"
+          >
             <RefreshCw size={17} /> Refresh
-          </button>
+          </ActionButton>
           <button
             className="secondary"
             onClick={() => {
@@ -436,6 +606,12 @@ export function ApplyOSApp() {
 
       <nav aria-label="ApplyOS workspace sections" className="workspace-tabs">
         <TabButton
+          active={activeTab === "agent"}
+          icon={<Sparkles size={16} />}
+          label="Agent Brief"
+          onClick={() => setActiveTab("agent")}
+        />
+        <TabButton
           active={activeTab === "matches"}
           icon={<Sparkles size={16} />}
           label="Daily Matches"
@@ -468,6 +644,34 @@ export function ApplyOSApp() {
       </nav>
 
       <section className="tab-surface">
+        {activeTab === "agent" ? (
+          <div className="tab-panel-grid">
+            <div className="agent-main">
+              <AgentBriefPanel brief={agentBrief} />
+              <AskApplyOSPanel
+                busyAction={busyAction}
+                chatInput={chatInput}
+                messages={chatMessages}
+                onAsk={askApplyOS}
+                onQuickAsk={(question) => askApplyOS(undefined, question)}
+                selectedJob={selectedJob}
+                setChatInput={setChatInput}
+                successAction={successAction}
+              />
+            </div>
+            <div className="tab-side">
+              <ResumeGapPanel
+                busyAction={busyAction}
+                gap={resumeGap}
+                onRun={runResumeGap}
+                selectedJob={selectedJob}
+                successAction={successAction}
+              />
+              <AgentActivityLog brief={agentBrief} events={agentEvents} />
+            </div>
+          </div>
+        ) : null}
+
         {activeTab === "matches" ? (
           <div className="tab-panel-grid">
             <section className="panel">
@@ -529,12 +733,31 @@ export function ApplyOSApp() {
                   <textarea name="jd_text" defaultValue={demoJD} rows={8} />
                 </label>
                 <div className="button-row">
-                  <button type="submit">
-                    <Save size={17} /> Save Job
-                  </button>
-                  <button className="secondary" onClick={analyzeSelectedJob} type="button">
+                  <ActionButton
+                    actionId="save-job"
+                    busyAction={busyAction}
+                    icon={<Save size={17} />}
+                    loadingLabel="Saving + analyzing"
+                    successAction={successAction}
+                    successLabel="Package ready"
+                    type="submit"
+                  >
+                    <Save size={17} /> Save + Analyze
+                  </ActionButton>
+                  <ActionButton
+                    actionId="analyze-job"
+                    busyAction={busyAction}
+                    className="secondary"
+                    disabled={!selectedJob}
+                    icon={<FileSearch size={17} />}
+                    loadingLabel="Analyzing"
+                    onClick={analyzeSelectedJob}
+                    successAction={successAction}
+                    successLabel="Updated"
+                    type="button"
+                  >
                     <FileSearch size={17} /> Analyze Selected
-                  </button>
+                  </ActionButton>
                 </div>
               </form>
               <DecisionPanel analysis={lastAnalysis} selectedJob={selectedJob} />
@@ -554,8 +777,22 @@ export function ApplyOSApp() {
 
         {activeTab === "profile" ? (
           <div className="tab-panel-grid even">
-            <ProfilePanel profile={profile} profileForm={profileForm} onSubmit={saveProfile} />
-            <ResumePanel onSubmit={uploadResume} resumes={resumes} />
+            <ProfilePanel
+              busyAction={busyAction}
+              isEditing={profileEditing || !profile}
+              onCancel={() => setProfileEditing(false)}
+              onEdit={() => setProfileEditing(true)}
+              onSubmit={saveProfile}
+              profile={profile}
+              profileForm={profileForm}
+              successAction={successAction}
+            />
+            <ResumePanel
+              busyAction={busyAction}
+              onSubmit={uploadResume}
+              resumes={resumes}
+              successAction={successAction}
+            />
           </div>
         ) : null}
 
@@ -569,9 +806,11 @@ export function ApplyOSApp() {
         {activeTab === "outreach" ? (
           <div className="tab-panel-grid even">
             <ReferralPanel
+              busyAction={busyAction}
               generateDraft={generateDraft}
               onSubmit={addContact}
               selectedContactId={selectedContactId}
+              successAction={successAction}
             />
             <section className="panel">
               <SectionTitle
@@ -611,6 +850,48 @@ function Metric({
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
+  );
+}
+
+function ActionButton({
+  actionId,
+  busyAction,
+  successAction,
+  loadingLabel,
+  successLabel,
+  icon,
+  children,
+  className,
+  disabled,
+  ...buttonProps
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  actionId: string;
+  busyAction: string | null;
+  successAction: string | null;
+  loadingLabel: string;
+  successLabel: string;
+  icon: ReactNode;
+}) {
+  const isBusy = busyAction === actionId;
+  const isSuccess = successAction === actionId;
+  return (
+    <button
+      className={`${className ?? ""} ${isBusy ? "is-busy" : ""} ${isSuccess ? "is-success" : ""}`}
+      disabled={disabled || isBusy}
+      {...buttonProps}
+    >
+      {isBusy ? (
+        <>
+          <RefreshCw className="spin" size={17} /> {loadingLabel}
+        </>
+      ) : isSuccess ? (
+        <>
+          <CheckCircle2 size={17} /> {successLabel}
+        </>
+      ) : (
+        <>{typeof children === "string" ? <><span>{icon}</span>{children}</> : children}</>
+      )}
+    </button>
   );
 }
 
@@ -661,6 +942,223 @@ function SectionTitle({
   );
 }
 
+function AgentBriefPanel({ brief }: { brief: AgentBrief | null }) {
+  return (
+    <section className="panel agent-brief-panel">
+      <SectionTitle
+        icon={<Sparkles size={18} />}
+        kicker="Agent brief"
+        title="What ApplyOS thinks now"
+        action={brief ? "Live" : "Loading"}
+      />
+      <div className="agent-headline">{brief?.headline ?? "Loading today's brief..."}</div>
+      <div className="brief-grid">
+        <div>
+          <h3>Priorities</h3>
+          {(brief?.priorities ?? []).map((item) => (
+            <article className={`brief-item ${item.severity}`} key={item.title}>
+              <strong>{item.title}</strong>
+              <span>{item.detail}</span>
+            </article>
+          ))}
+        </div>
+        <div>
+          <h3>Recommended actions</h3>
+          <ul className="clean-list">
+            {(brief?.recommended_actions ?? []).map((action) => (
+              <li key={action}>{action}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div className="observation-strip">
+        {(brief?.observations ?? []).map((item) => (
+          <span key={item}>{item}</span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AskApplyOSPanel({
+  busyAction,
+  chatInput,
+  messages,
+  onAsk,
+  onQuickAsk,
+  selectedJob,
+  setChatInput,
+  successAction
+}: {
+  busyAction: string | null;
+  chatInput: string;
+  messages: ChatMessage[];
+  onAsk: (event?: FormEvent<HTMLFormElement>, forcedQuestion?: string) => void;
+  onQuickAsk: (question: string) => void;
+  selectedJob?: Job;
+  setChatInput: (value: string) => void;
+  successAction: string | null;
+}) {
+  const quickPrompts = [
+    "Is this job worth applying to first?",
+    "What resume gaps should I fix?",
+    "Should I seek referral before applying?"
+  ];
+  return (
+    <section className="panel ask-panel">
+      <SectionTitle
+        icon={<MessageSquareText size={18} />}
+        kicker="Ask ApplyOS"
+        title="Decision copilot"
+        action={selectedJob ? selectedJob.company : "No job selected"}
+      />
+      <div className="chat-log">
+        {messages.map((message, index) => (
+          <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
+            <span>{message.role === "agent" ? "ApplyOS" : "You"}</span>
+            <p>{message.text}</p>
+          </article>
+        ))}
+      </div>
+      <div className="quick-prompts">
+        {quickPrompts.map((prompt) => (
+          <button className="chip-button" key={prompt} onClick={() => onQuickAsk(prompt)} type="button">
+            {prompt}
+          </button>
+        ))}
+      </div>
+      <form className="ask-form" onSubmit={(event) => onAsk(event)}>
+        <input
+          onChange={(event) => setChatInput(event.target.value)}
+          placeholder="Ask about fit, resume, referral, or next action..."
+          value={chatInput}
+        />
+        <ActionButton
+          actionId="ask-agent"
+          busyAction={busyAction}
+          icon={<MessageSquareText size={16} />}
+          loadingLabel="Thinking"
+          successAction={successAction}
+          successLabel="Answered"
+          type="submit"
+        >
+          <MessageSquareText size={16} /> Ask
+        </ActionButton>
+      </form>
+    </section>
+  );
+}
+
+function ResumeGapPanel({
+  busyAction,
+  gap,
+  onRun,
+  selectedJob,
+  successAction
+}: {
+  busyAction: string | null;
+  gap: ResumeGap | null;
+  onRun: () => void;
+  selectedJob?: Job;
+  successAction: string | null;
+}) {
+  return (
+    <section className="panel">
+      <SectionTitle
+        icon={<FileSearch size={18} />}
+        kicker="Resume Gap Agent"
+        title="Truthful keyword gaps"
+        action={selectedJob ? selectedJob.company : "Select job"}
+      />
+      {gap ? (
+        <div className="gap-content">
+          <div className="locked-summary">
+            <span>Recommended resume</span>
+            <strong>{gap.resume_version}</strong>
+          </div>
+          <h3>Covered</h3>
+          <div className="tag-row">
+            {gap.covered_terms.map((term) => (
+              <span className="tag positive" key={term}>
+                {term}
+              </span>
+            ))}
+          </div>
+          <h3>Gaps to verify</h3>
+          <div className="tag-row">
+            {gap.missing_terms.map((term) => (
+              <span className="tag watch" key={term}>
+                {term}
+              </span>
+            ))}
+          </div>
+          <ul className="clean-list">
+            {gap.suggested_edits.map((edit) => (
+              <li key={edit}>{edit}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="muted">Select a job and run Resume Gap before editing resume bullets.</p>
+      )}
+      <ActionButton
+        actionId="resume-gap"
+        busyAction={busyAction}
+        className="full"
+        disabled={!selectedJob}
+        icon={<FileSearch size={16} />}
+        loadingLabel="Checking"
+        onClick={onRun}
+        successAction={successAction}
+        successLabel="Gap ready"
+        type="button"
+      >
+        <FileSearch size={16} /> Run Resume Gap
+      </ActionButton>
+    </section>
+  );
+}
+
+function AgentActivityLog({
+  brief,
+  events
+}: {
+  brief: AgentBrief | null;
+  events: AgentEvent[];
+}) {
+  const rows = [
+    ...events,
+    ...(brief?.activity ?? []).map((detail, index) => ({
+      id: `brief-${index}`,
+      title: "Brief scan",
+      detail,
+      status: "done" as const
+    }))
+  ].slice(0, 8);
+  return (
+    <section className="panel">
+      <SectionTitle
+        icon={<ClipboardCheck size={18} />}
+        kicker="Agent activity"
+        title="What changed"
+        action={`${rows.length} events`}
+      />
+      <div className="activity-log">
+        {rows.length === 0 ? (
+          <p className="muted">Agent actions will appear here.</p>
+        ) : (
+          rows.map((event) => (
+            <article className={event.status} key={event.id}>
+              <strong>{event.title}</strong>
+              <span>{event.detail}</span>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
 function DailyMatchCard({
   suggestion,
   adding,
@@ -704,14 +1202,19 @@ function DailyMatchCard({
         <a href={suggestion.job_url} rel="noreferrer" target="_blank">
           <ExternalLink size={15} /> Open JD
         </a>
-        <button disabled={adding || suggestion.already_added} onClick={onAdd} type="button">
+        <button
+          className={`${adding ? "is-busy" : ""} ${suggestion.already_added ? "is-success" : ""}`}
+          disabled={adding || suggestion.already_added}
+          onClick={onAdd}
+          type="button"
+        >
           {suggestion.already_added ? (
             <>
               <CheckCircle2 size={16} /> Added
             </>
           ) : adding ? (
             <>
-              <RefreshCw size={16} /> Adding
+              <RefreshCw className="spin" size={16} /> Adding
             </>
           ) : (
             <>
@@ -725,21 +1228,80 @@ function DailyMatchCard({
 }
 
 function ProfilePanel({
+  busyAction,
+  isEditing,
+  onCancel,
+  onEdit,
   profile,
   profileForm,
-  onSubmit
+  onSubmit,
+  successAction
 }: {
+  busyAction: string | null;
+  isEditing: boolean;
+  onCancel: () => void;
+  onEdit: () => void;
   profile: Profile | null;
   profileForm: ProfilePayload;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  successAction: string | null;
 }) {
+  if (profile && !isEditing) {
+    return (
+      <section className="panel profile-panel">
+        <SectionTitle
+          icon={<UserRoundCog size={18} />}
+          kicker="Candidate profile"
+          title="Locked recommendation inputs"
+          action="Locked"
+        />
+        <div className="profile-lock-banner">
+          <CheckCircle2 size={18} />
+          <div>
+            <strong>Profile is saved and locked for matching.</strong>
+            <span>Daily matches, resume gaps, and Agent Brief now use this profile.</span>
+          </div>
+        </div>
+        <div className="locked-profile">
+          <ReadOnlyBlock label="Target roles" values={profile.target_roles} />
+          <ReadOnlyBlock label="Skills" values={profile.skills} />
+          <ReadOnlyBlock label="Core projects" values={profile.core_projects} />
+          <ReadOnlyBlock label="Resume versions" values={profile.resume_versions} />
+          <div className="profile-facts">
+            <article>
+              <span>Visa / sponsor</span>
+              <strong>{profile.visa_status || "Not set"}</strong>
+            </article>
+            <article>
+              <span>Graduation</span>
+              <strong>{profile.graduation_date || "Not set"}</strong>
+            </article>
+            <article>
+              <span>Preferred locations</span>
+              <strong>{profile.preferred_locations.join(", ") || "Not set"}</strong>
+            </article>
+          </div>
+          {profile.notes ? (
+            <div className="profile-note">
+              <span>Notes</span>
+              <p>{profile.notes}</p>
+            </div>
+          ) : null}
+        </div>
+        <button className="secondary" onClick={onEdit} type="button">
+          <UserRoundCog size={16} /> Edit Profile
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section className="panel">
       <SectionTitle
         icon={<UserRoundCog size={18} />}
         kicker="Candidate profile"
         title="Recommendation inputs"
-        action={profile ? "Saved" : "Default"}
+        action={profile ? "Editing" : "Default"}
       />
       <form className="stack" onSubmit={onSubmit}>
         <label>
@@ -792,20 +1354,54 @@ function ProfilePanel({
           Notes
           <textarea defaultValue={profileForm.notes ?? ""} name="notes" rows={3} />
         </label>
-        <button type="submit">
-          <Save size={16} /> Save Profile
-        </button>
+        <div className="button-row">
+          <ActionButton
+            actionId="save-profile"
+            busyAction={busyAction}
+            icon={<Save size={16} />}
+            loadingLabel="Saving profile"
+            successAction={successAction}
+            successLabel="Profile locked"
+            type="submit"
+          >
+            <Save size={16} /> Save Profile
+          </ActionButton>
+          {profile ? (
+            <button className="secondary" onClick={onCancel} type="button">
+              Cancel
+            </button>
+          ) : null}
+        </div>
       </form>
     </section>
   );
 }
 
+function ReadOnlyBlock({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div className="readonly-block">
+      <span>{label}</span>
+      <div className="readonly-tags">
+        {values.length === 0 ? (
+          <em>Not set</em>
+        ) : (
+          values.map((value) => <strong key={value}>{value}</strong>)
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ResumePanel({
+  busyAction,
   resumes,
-  onSubmit
+  onSubmit,
+  successAction
 }: {
+  busyAction: string | null;
   resumes: ResumeAsset[];
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  successAction: string | null;
 }) {
   return (
     <section className="panel">
@@ -828,9 +1424,17 @@ function ResumePanel({
             rows={4}
           />
         </label>
-        <button type="submit">
+        <ActionButton
+          actionId="upload-resume"
+          busyAction={busyAction}
+          icon={<Upload size={16} />}
+          loadingLabel="Saving resume"
+          successAction={successAction}
+          successLabel="Resume saved"
+          type="submit"
+        >
           <Upload size={16} /> Save Resume
-        </button>
+        </ActionButton>
       </form>
       <div className="mini-list">
         {resumes.slice(0, 3).map((resume) => (
@@ -905,13 +1509,17 @@ function ActionsPanel({ actions }: { actions: TodayAction[] }) {
 }
 
 function ReferralPanel({
+  busyAction,
   onSubmit,
   generateDraft,
-  selectedContactId
+  selectedContactId,
+  successAction
 }: {
+  busyAction: string | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   generateDraft: () => void;
   selectedContactId: number | null;
+  successAction: string | null;
 }) {
   return (
     <section className="panel">
@@ -926,13 +1534,31 @@ function ReferralPanel({
         <input name="company" placeholder="Company" />
         <input name="title" placeholder="Title / team" />
         <input name="relationship" placeholder="USC alumni / engineer / recruiter" />
-        <button type="submit">
+        <ActionButton
+          actionId="save-contact"
+          busyAction={busyAction}
+          icon={<UsersRound size={16} />}
+          loadingLabel="Saving contact"
+          successAction={successAction}
+          successLabel="Contact saved"
+          type="submit"
+        >
           <UsersRound size={16} /> Save Contact
-        </button>
+        </ActionButton>
       </form>
-      <button className="secondary full" onClick={generateDraft} type="button">
+      <ActionButton
+        actionId="draft-message"
+        busyAction={busyAction}
+        className="secondary full"
+        icon={<MessageSquareText size={16} />}
+        loadingLabel="Drafting"
+        onClick={generateDraft}
+        successAction={successAction}
+        successLabel="Draft ready"
+        type="button"
+      >
         <MessageSquareText size={16} /> Generate Draft
-      </button>
+      </ActionButton>
     </section>
   );
 }

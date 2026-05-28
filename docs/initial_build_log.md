@@ -83,6 +83,19 @@ Date: 2026-05-29
 - Browser smoke test: register -> confirm tabs render -> switch JD Workbench / Profile & Resume / Analytics and verify unrelated panels are not visible.
 - Verification: `npm run build`; `npm run typecheck`.
 
+## V2 Agent Interaction Upgrade
+
+Date: 2026-05-29
+
+- Added a dedicated `Agent Brief` tab so ApplyOS can summarize current priorities, observations, recommended actions, and recent agent activity instead of only returning a score.
+- Added `Ask ApplyOS`, a job-aware chat surface for fit, referral timing, resume gaps, and next actions.
+- Added `Resume Gap Agent`, which compares selected JD terms against saved resume/profile evidence and suggests truthful edits only.
+- `Save + Analyze` now creates the job and immediately generates the decision package.
+- Profile save now has loading/success feedback and then locks into a read-only profile card; the user must click `Edit Profile` before changing matching inputs.
+- All primary actions now have visible busy/success states: login, register, refresh, save profile, upload resume, save job, analyze, resume gap, save contact, and draft message.
+- Browser smoke test: login -> Agent Brief loads -> Profile save locks read-only view -> Daily Match Add opens workbench -> Resume Gap runs -> Ask ApplyOS returns referral next actions.
+- Verification: `uv run ruff check .`, `uv run mypy app tests`, `uv run pytest`, `npm run build`, and `npm run typecheck`.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
