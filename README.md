@@ -1,0 +1,92 @@
+# ApplyOS
+
+ApplyOS is a login-based AI job-search CRM and Application Decision Agent for international new grad candidates.
+
+It does not automate spam. It automates judgment: JD parsing, fit scoring, resume-version recommendation, referral/contact planning, outreach drafting for manual review, application tracking, and follow-up reminders.
+
+## Current MVP
+
+- FastAPI backend with SQLite persistence.
+- HMAC-signed bearer auth and per-user data isolation.
+- Profile, jobs, contacts, applications, outreach messages, dashboard, and agent endpoints.
+- Deterministic fallback decision agent that works without an API key.
+- Optional OpenAI augmentation when `OPENAI_API_KEY` is replaced with a real key.
+- Next.js frontend for daily job decisions, JD intake, decision packages, referral contacts, outreach drafts, and action queues.
+
+## Safety Boundary
+
+ApplyOS does not:
+
+- log into LinkedIn;
+- send LinkedIn/email messages automatically;
+- submit applications automatically;
+- answer visa, sponsorship, education, or experience questions automatically;
+- bypass platform restrictions;
+- fabricate candidate claims.
+
+The product prepares a reviewed decision package. Haichuan manually sends and submits.
+
+## Local Setup
+
+Backend:
+
+```bash
+cd backend
+uv sync --group dev
+cp .env.example .env.local
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install --cache /private/tmp/applyos-npm-cache
+cp .env.local.example .env.local
+npm run build
+npm run start -- --hostname 127.0.0.1 --port 3000
+```
+
+Open `http://127.0.0.1:3000`.
+
+`npm run dev` is available for ordinary local development, but this Codex workspace hit
+Next/Watchpack `EMFILE` watcher limits because the project sits under a large parent
+directory. The production build/start path above is the verified local path for this
+initial commit.
+
+## Environment
+
+Backend placeholder:
+
+```bash
+OPENAI_API_KEY=replace-with-your-openai-api-key
+```
+
+The placeholder is intentional. With the placeholder, the backend uses deterministic fallback scoring. Replace it locally or in Railway when you want live OpenAI augmentation.
+
+## Verification
+
+Backend:
+
+```bash
+cd backend
+uv run ruff check .
+uv run mypy app tests
+uv run pytest
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Browser smoke test covered: register -> save job -> analyze -> save contact -> generate draft.
+
+## Railway Later
+
+Pause point for this commit: code is pushed first. Railway deployment should be done as the next step by creating separate services for `backend/` and `frontend/`, setting environment variables, and wiring `NEXT_PUBLIC_API_BASE_URL` to the backend URL.
+
+Before production deployment, recheck the current Next/PostCSS npm audit warning and upgrade once a patched compatible Next release is available.

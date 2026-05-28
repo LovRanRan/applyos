@@ -1,0 +1,50 @@
+# Initial Build Log
+
+Date: 2026-05-28
+
+## Scope
+
+Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
+
+## Implemented
+
+- Backend FastAPI app with auth, profile, jobs, contacts, applications, outreach, dashboard, and agent endpoints.
+- SQLite persistence through SQLAlchemy.
+- Per-user protected routes using bearer tokens.
+- Deterministic Application Decision Agent fallback.
+- Optional OpenAI augmentation path guarded by placeholder `OPENAI_API_KEY`.
+- Next.js frontend with login/register, JD intake, selected-job analysis, decision package, daily actions, referral contact form, outreach draft generation, and summary tables.
+- Root setup docs, backend/frontend env examples, Dockerfiles, and Docker Compose draft.
+
+## Agent Boundary
+
+The MVP prepares decisions and drafts only. It does not auto-submit applications, auto-send messages, or auto-answer visa/work authorization questions.
+
+## Verification
+
+Backend:
+
+- `uv run ruff check .`
+- `uv run mypy app tests`
+- `uv run pytest`
+
+Frontend:
+
+- `npm run typecheck`
+- `npm run build`
+- Browser smoke test on `next start`: register -> save job -> analyze -> save contact -> generate draft.
+
+Observed local dev limitation:
+
+- `npm run dev` hit Next/Watchpack `EMFILE` watcher limits in this large Codex workspace and returned 404 in dev mode.
+- Production `npm run build` + `npm run start` served the app correctly and passed the browser workflow.
+
+## Known Follow-Ups
+
+- Replace SQLite with Postgres before production Railway use.
+- Add Alembic migrations before schema changes become frequent.
+- Add real OpenAI structured output once the user provides a real key.
+- Add application-detail page and editable decision packages.
+- Add saved daily job discovery sources.
+- Add Railway services and environment variables in the next session.
+- Recheck the current Next/PostCSS npm audit warning before production deploy.
