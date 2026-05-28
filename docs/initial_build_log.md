@@ -51,6 +51,18 @@ Date: 2026-05-29
 - Kept the safety boundary: suggestions are curated starter data, not live scraping or auto-apply automation.
 - Verification: `uv run ruff check .`, `uv run mypy app tests`, `uv run pytest`, `npm run typecheck`, and `npm run build`.
 
+## V2 Interaction Redesign
+
+Date: 2026-05-29
+
+- Rebuilt the frontend into a command-center layout: daily matches, JD workbench, profile inputs, resume vault, tech-stack analytics, today actions, referral contact, and tracker records.
+- Daily matches now include real JD links, explicit match scores, matched skill tags, missing/risk tags, recommended resume version, and visible Add / Added button state.
+- Added profile/resume-aware matching service shared by daily suggestions and analytics.
+- Added `GET /analytics/tech-stack` to count repeated technologies across saved jobs and power the frontend bar chart.
+- One-click Add now creates a pre-scored job, updates tracker metrics, refreshes daily match state, and immediately updates tech-stack analytics.
+- Browser smoke test: register -> refresh daily matches -> Add Anthropic role -> Total jobs/Ready metrics update -> Add button becomes Added -> tech-stack chart appears.
+- Verification: `uv run ruff check .`, `uv run mypy app tests`, `uv run pytest`, `npm run typecheck`, and `npm run build`.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
@@ -64,6 +76,7 @@ Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
 - Optional OpenAI augmentation path guarded by placeholder `OPENAI_API_KEY`.
 - Next.js frontend with login/register, JD intake, selected-job analysis, decision package, daily actions, referral contact form, outreach draft generation, and summary tables.
 - V1.1 additions: resume upload, daily role push, and one-click add to tracker.
+- V2 additions: command-center UI, profile-aware daily match scoring, explicit Add feedback, JD links, and tech-stack analytics.
 - Root setup docs, backend/frontend env examples, Dockerfiles, and Docker Compose draft.
 
 ## Agent Boundary
@@ -82,7 +95,9 @@ Frontend:
 
 - `npm run typecheck`
 - `npm run build`
-- Browser smoke test on `next start`: register -> save job -> analyze -> save contact -> generate draft.
+- Browser smoke tests:
+  - `next start`: register -> save job -> analyze -> save contact -> generate draft.
+  - V2 local app: register -> refresh daily matches -> Add suggested role -> metrics and tech-stack chart refresh.
 
 Observed local dev limitation:
 

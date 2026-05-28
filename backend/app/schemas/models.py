@@ -322,6 +322,23 @@ class DailyJobSuggestion(BaseModel):
     reason: str
     suggested_resume: str
     score_hint: str
+    match_score: float
+    matched_terms: list[str] = Field(default_factory=list)
+    missing_terms: list[str] = Field(default_factory=list)
+    referral_query: str
+    already_added: bool = False
+
+
+class TechStackCount(BaseModel):
+    term: str
+    job_count: int
+    mention_count: int
+
+
+class TechStackAnalytics(BaseModel):
+    total_jobs: int
+    terms: list[TechStackCount]
+    top_terms: list[str]
 
 
 class InterviewPrepRequest(BaseModel):

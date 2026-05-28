@@ -69,6 +69,21 @@ export type ResumeAsset = {
   content: string;
 };
 
+export type Profile = {
+  id: number;
+  user_id: number;
+  target_roles: string[];
+  visa_status?: string | null;
+  graduation_date?: string | null;
+  preferred_locations: string[];
+  resume_versions: string[];
+  core_projects: string[];
+  skills: string[];
+  notes?: string | null;
+};
+
+export type ProfilePayload = Omit<Profile, "id" | "user_id">;
+
 export type DailyJobSuggestion = {
   id: string;
   company: string;
@@ -79,6 +94,23 @@ export type DailyJobSuggestion = {
   reason: string;
   suggested_resume: string;
   score_hint: string;
+  match_score: number;
+  matched_terms: string[];
+  missing_terms: string[];
+  referral_query: string;
+  already_added: boolean;
+};
+
+export type TechStackCount = {
+  term: string;
+  job_count: number;
+  mention_count: number;
+};
+
+export type TechStackAnalytics = {
+  total_jobs: number;
+  terms: TechStackCount[];
+  top_terms: string[];
 };
 
 export type AgentAnalysis = {
@@ -162,6 +194,9 @@ export const api = {
     payload: { name: string; company?: string; title?: string; relationship?: string; source?: string }
   ) => request<Contact>("/contacts", { method: "POST", body: JSON.stringify(payload) }, token),
   messages: (token: string) => request<OutreachMessage[]>("/outreach/messages", {}, token),
+  profile: (token: string) => request<Profile>("/profile", {}, token),
+  saveProfile: (token: string, payload: ProfilePayload) =>
+    request<Profile>("/profile", { method: "PUT", body: JSON.stringify(payload) }, token),
   resumes: (token: string) => request<ResumeAsset[]>("/resumes", {}, token),
   uploadResume: (token: string, payload: { name: string; content: string; source?: string }) =>
     request<ResumeAsset>("/resumes", { method: "POST", body: JSON.stringify(payload) }, token),
@@ -169,6 +204,8 @@ export const api = {
     request<DailyJobSuggestion[]>("/daily/suggestions", {}, token),
   addSuggestion: (token: string, suggestionId: string) =>
     request<Job>(`/daily/suggestions/${suggestionId}/add`, { method: "POST" }, token),
+  techStackAnalytics: (token: string) =>
+    request<TechStackAnalytics>("/analytics/tech-stack", {}, token),
   generateMessage: (
     token: string,
     payload: { job_id?: number; contact_id?: number; message_type: string; context?: string }

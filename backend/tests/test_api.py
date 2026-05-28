@@ -67,10 +67,35 @@ def test_resume_upload_and_daily_suggestion_add(
     assert resumes.status_code == 200
     assert len(resumes.json()) == 1
 
+    profile = client.put(
+        "/profile",
+        headers=auth_headers,
+        json={
+            "target_roles": ["AI Agent Engineer", "Backend SDE"],
+            "visa_status": "F-1 student; needs sponsor-friendly roles",
+            "graduation_date": "Dec 2026",
+            "preferred_locations": ["United States", "Remote"],
+            "resume_versions": ["AI Agent Engineer resume", "Backend SDE resume"],
+            "core_projects": ["Wayfinder", "MCP Codebase Intelligence Toolkit"],
+            "skills": ["Python", "FastAPI", "RAG", "LLM Agents", "MCP"],
+            "notes": "Prioritize agent and backend roles.",
+        },
+    )
+    assert profile.status_code == 200
+
     suggestions = client.get("/daily/suggestions", headers=auth_headers)
     assert suggestions.status_code == 200
-    suggestion_id = suggestions.json()[0]["id"]
+    first_suggestion = suggestions.json()[0]
+    assert first_suggestion["job_url"].startswith("https://")
+    assert first_suggestion["match_score"] > 0
+    assert first_suggestion["matched_terms"]
+    suggestion_id = first_suggestion["id"]
 
     added = client.post(f"/daily/suggestions/{suggestion_id}/add", headers=auth_headers)
     assert added.status_code == 201
     assert added.json()["source"] == "daily suggestion"
+    assert added.json()["apply_readiness"] == first_suggestion["match_score"]
+
+    analytics = client.get("/analytics/tech-stack", headers=auth_headers)
+    assert analytics.status_code == 200
+    assert analytics.json()["terms"]

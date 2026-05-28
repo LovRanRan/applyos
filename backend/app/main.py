@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import (
     agent,
+    analytics,
     applications,
     auth,
     contacts,
@@ -46,6 +47,7 @@ app.include_router(applications.router)
 app.include_router(outreach.router)
 app.include_router(dashboard.router)
 app.include_router(daily.router)
+app.include_router(analytics.router)
 app.include_router(agent.router)
 
 

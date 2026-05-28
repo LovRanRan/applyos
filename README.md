@@ -4,16 +4,17 @@ ApplyOS is a login-based AI job-search CRM and Application Decision Agent for in
 
 It does not automate spam. It automates judgment: JD parsing, fit scoring, resume-version recommendation, referral/contact planning, outreach drafting for manual review, application tracking, and follow-up reminders.
 
-## Current MVP
+## Current MVP / V2
 
 - FastAPI backend with SQLite persistence.
 - HMAC-signed bearer auth and per-user data isolation.
 - Profile, jobs, contacts, applications, outreach messages, dashboard, and agent endpoints.
 - Deterministic fallback decision agent that works without an API key.
 - Optional OpenAI augmentation when `OPENAI_API_KEY` is replaced with a real key.
-- Next.js frontend for daily job decisions, JD intake, decision packages, referral contacts, outreach drafts, and action queues.
+- Next.js V2 command-center frontend for daily matches, JD intake, decision packages, profile/resume inputs, referral contacts, outreach drafts, analytics, and action queues.
 - Resume text asset upload for `.txt` / `.md` resume snapshots or pasted bullets.
-- Curated daily role suggestions with one-click add to the application tracker.
+- Resume/profile-aware daily role suggestions with JD links, match scores, matched terms, missing terms, referral queries, and one-click add to the application tracker.
+- Tech-stack frequency analytics that update whenever jobs are added.
 
 ## Safety Boundary
 
@@ -85,7 +86,7 @@ npm run typecheck
 npm run build
 ```
 
-Browser smoke test covered: register -> save job -> analyze -> save contact -> generate draft.
+Browser smoke test covered: register -> daily match Add -> tracker metric refresh -> tech-stack chart refresh.
 
 ## Railway Later
 
