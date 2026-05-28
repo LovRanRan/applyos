@@ -63,6 +63,16 @@ Date: 2026-05-29
 - Browser smoke test: register -> refresh daily matches -> Add Anthropic role -> Total jobs/Ready metrics update -> Add button becomes Added -> tech-stack chart appears.
 - Verification: `uv run ruff check .`, `uv run mypy app tests`, `uv run pytest`, `npm run typecheck`, and `npm run build`.
 
+## V2 Railway Deploy Verification
+
+Date: 2026-05-29
+
+- Commit pushed: `040a6d9` (`Build ApplyOS V2 dashboard`).
+- Frontend V2 cache-busted page check: `https://applyos.up.railway.app/?v=040a6d9` renders `ApplyOS V2`.
+- Backend proxy check: `GET /api/backend/analytics/tech-stack` returns authenticated-route `401` without a token, confirming the new analytics route is deployed.
+- Online smoke test through the deployed frontend proxy: register -> save profile -> get 4 daily suggestions -> first suggestion score `98` -> one-click add Anthropic role -> analytics returns top terms `AWS`, `Backend APIs`, `Evals`, `LLM Agents`.
+- Note: the bare `/` route may remain edge-cached briefly; use hard refresh or a cache-busted URL immediately after deployment.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
