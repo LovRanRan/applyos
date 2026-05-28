@@ -11,6 +11,14 @@ Date: 2026-05-28
 - API key status: no real key committed; `.env.example` and `.env.local.example` use placeholders only.
 - Local browser verification screenshot: `/private/tmp/applyos-browser-verified.png`
 
+## Railway Deployment Notes
+
+- Deploy this repository as two Railway services, not one root service.
+- Backend service root directory: `backend`.
+- Frontend service root directory: `frontend`.
+- Both service Dockerfiles use Railway's `$PORT` with local fallbacks.
+- If Railway builds from the repository root, the build will fail because the repo root intentionally does not contain a single full-stack Dockerfile.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.

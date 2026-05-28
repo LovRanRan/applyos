@@ -87,6 +87,37 @@ Browser smoke test covered: register -> save job -> analyze -> save contact -> g
 
 ## Railway Later
 
-Pause point for this commit: code is pushed first. Railway deployment should be done as the next step by creating separate services for `backend/` and `frontend/`, setting environment variables, and wiring `NEXT_PUBLIC_API_BASE_URL` to the backend URL.
+Railway deployment uses two services from this monorepo. Railway looks for a `Dockerfile` at the root of each service's source directory, so each service must set its own root directory.
+
+Backend service:
+
+```text
+Service root directory: backend
+Dockerfile path: Dockerfile
+```
+
+Backend variables:
+
+```env
+OPENAI_API_KEY=replace-with-your-openai-api-key
+OPENAI_MODEL=gpt-4.1-mini
+APP_SECRET=replace-with-a-long-random-secret
+ALLOWED_ORIGINS=https://your-frontend-domain.up.railway.app
+```
+
+Frontend service:
+
+```text
+Service root directory: frontend
+Dockerfile path: Dockerfile
+```
+
+Frontend variables:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.up.railway.app
+```
+
+Both Dockerfiles bind to `0.0.0.0` and use Railway's `$PORT`, with local fallbacks for development.
 
 Before production deployment, recheck the current Next/PostCSS npm audit warning and upgrade once a patched compatible Next release is available.
