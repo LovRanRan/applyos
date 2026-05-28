@@ -2,6 +2,15 @@
 
 Date: 2026-05-28
 
+## Repository Handoff
+
+- GitHub: https://github.com/LovRanRan/applyos
+- Branch: `main`
+- Initial MVP commit: `812f7ed` (`Initial ApplyOS full-stack MVP`)
+- Deployment status: Railway deployment intentionally paused after repo push.
+- API key status: no real key committed; `.env.example` and `.env.local.example` use placeholders only.
+- Local browser verification screenshot: `/private/tmp/applyos-browser-verified.png`
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
