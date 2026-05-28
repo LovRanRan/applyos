@@ -19,6 +19,19 @@ Date: 2026-05-28
 - Both service Dockerfiles use Railway's `$PORT` with local fallbacks.
 - If Railway builds from the repository root, the build will fail because the repo root intentionally does not contain a single full-stack Dockerfile.
 
+## Railway Deployment Result
+
+Date: 2026-05-29
+
+- Backend service: https://applyos-production-1e77.up.railway.app
+- Frontend service: https://steadfast-compassion-production-efdc.up.railway.app
+- Backend root directory: `/backend`
+- Frontend root directory: `/frontend`
+- Backend CORS origin: `https://steadfast-compassion-production-efdc.up.railway.app`
+- Health check: `GET /health` returned `{"status":"ok"}`.
+- CORS preflight: `OPTIONS /auth/register` from the frontend origin returned `200`.
+- API smoke test: register -> create job -> analyze returned `source=openai_augmented`, confirming the Railway `OPENAI_API_KEY` path works.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
