@@ -115,8 +115,10 @@ Dockerfile path: Dockerfile
 Frontend variables:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.up.railway.app
+BACKEND_API_BASE_URL=https://your-backend-domain.up.railway.app
 ```
+
+The frontend calls its own `/api/backend/...` proxy route, and that server-side route forwards requests to `BACKEND_API_BASE_URL`. This avoids baking public API URLs into the browser bundle during `next build`.
 
 Both Dockerfiles bind to `0.0.0.0` and use Railway's `$PORT`, with local fallbacks for development.
 

@@ -32,6 +32,15 @@ Date: 2026-05-29
 - CORS preflight: `OPTIONS /auth/register` from the frontend origin returned `200`.
 - API smoke test: register -> create job -> analyze returned `source=openai_augmented`, confirming the Railway `OPENAI_API_KEY` path works.
 
+## Frontend API Proxy Fix
+
+Date: 2026-05-29
+
+- Problem: the browser bundle still contained `http://localhost:8000`, because `NEXT_PUBLIC_API_BASE_URL` is a build-time value in Next.js.
+- Fix: frontend API calls now target same-origin `/api/backend/...`.
+- Runtime forwarding: Next route handler `app/api/backend/[...path]/route.ts` forwards requests to `BACKEND_API_BASE_URL`, with `NEXT_PUBLIC_API_BASE_URL` kept only as a compatibility fallback.
+- Railway frontend variable after this fix: `BACKEND_API_BASE_URL=https://applyos-production-1e77.up.railway.app`.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
