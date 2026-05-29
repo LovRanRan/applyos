@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.security import current_user
@@ -27,54 +27,186 @@ class SuggestionSeed:
 
 SUGGESTIONS = [
     SuggestionSeed(
-        id="anthropic-fde-ng",
+        id="anthropic-forward-deployed-engineer",
         company="Anthropic",
-        title="Forward Deployed AI Engineer, New Grad",
-        location="San Francisco / New York / Remote US",
-        job_url="https://www.anthropic.com/careers",
-        reason="Agent workflow + eval + customer-facing engineering match.",
+        title="Forward Deployed Engineer",
+        location="Boston / New York / Seattle / San Francisco",
+        job_url="https://www.anthropic.com/careers/jobs/4985877008",
+        reason="Agent workflow + eval + customer-facing engineering match on an exact role page.",
         jd_text=(
-            "Early-career Forward Deployed AI Engineer building reliable LLM-powered "
-            "workflows with tool calling, retrieval, evals, Python APIs, TypeScript, SQL, "
-            "cloud deployment, and backend services. Work authorization reviewed case by case."
+            "Forward Deployed Engineer building production applications with Claude models. "
+            "Responsibilities include customer discovery, MCP servers, sub-agents, agent skills, "
+            "deployment patterns, LLM evaluation frameworks, Python, TypeScript, "
+            "enterprise systems, "
+            "travel, and production reliability. Visa sponsorship may be reviewed case by case."
         ),
     ),
     SuggestionSeed(
-        id="databricks-swe-ng",
-        company="Databricks",
-        title="Software Engineer, New Grad - Backend Platform",
-        location="United States",
-        job_url="https://www.databricks.com/company/careers",
-        reason="Backend platform role with data infrastructure brand signal.",
+        id="anthropic-product-engineer-applied-ai",
+        company="Anthropic",
+        title="Product Engineer, Applied AI, Digital Natives Business",
+        location="San Francisco / New York / Seattle",
+        job_url="https://www.anthropic.com/careers/jobs/5057647008",
+        reason="Claude API architecture and eval advisory work fits agent product engineering.",
         jd_text=(
-            "New grad software engineer role focused on Python, backend APIs, distributed "
-            "systems, SQL, reliability, cloud infrastructure, and developer experience. "
-            "Early career candidates are encouraged to apply."
+            "Technical Product Engineer focused on Digital Native Businesses adopting the "
+            "Claude API. "
+            "Advise customer engineering teams on architecture, production LLM "
+            "implementation patterns, "
+            "evaluation frameworks, Python or TypeScript applications, backend APIs, "
+            "and safe deployment."
         ),
     ),
     SuggestionSeed(
-        id="cursor-ai-infra",
+        id="cursor-agent-evaluation-quality",
         company="Cursor",
-        title="AI Infrastructure Engineer",
-        location="New York / San Francisco",
-        job_url="https://www.cursor.com/careers",
-        reason="Codebase onboarding and AI developer tooling connection.",
+        title="Software Engineer, Agent Evaluation and Quality",
+        location="San Francisco / New York",
+        job_url="https://cursor.com/careers/software-engineer-agent-evaluation-and-quality",
+        reason="Direct fit for agent eval infrastructure and codebase-agent product signals.",
         jd_text=(
-            "Build AI developer tools and infrastructure for coding agents. Work across "
-            "LLM APIs, retrieval, code understanding, evals, TypeScript, Python services, "
-            "observability, and production backend systems."
+            "Build measurement, evaluation, and feedback-loop infrastructure for "
+            "Cursor's core agent. "
+            "Work across product, data, engineering, quality signals, agent behavior "
+            "analysis, pipelines, "
+            "experimentation, ranking, search quality, backend systems, Python, "
+            "TypeScript, and observability."
         ),
     ),
     SuggestionSeed(
-        id="langchain-agent-platform",
-        company="LangChain",
-        title="Software Engineer, Agent Platform",
-        location="New York / Remote US",
-        job_url="https://www.langchain.com/careers",
-        reason="Direct fit for agent orchestration, evals, and production LLM apps.",
+        id="cursor-agent-harness",
+        company="Cursor",
+        title="Software Engineer, Agent Harness",
+        location="San Francisco / New York",
+        job_url="https://cursor.com/careers/software-engineer-agent-harness",
+        reason="Agent orchestration, tools, guardrails, and model behavior tuning match Wayfinder.",
         jd_text=(
-            "Build production agent platform features with Python, TypeScript, LangGraph, "
-            "tool calling, observability, evaluations, backend APIs, and cloud deployment."
+            "Build the core agent behavior and capabilities that power Cursor products. "
+            "Work on agent orchestration, tools, guardrails, model behavior tuning, platform APIs, "
+            "tool use, autonomous coding agents, reliability, Python, TypeScript, "
+            "and backend systems."
+        ),
+    ),
+    SuggestionSeed(
+        id="cursor-forward-deployed-engineer",
+        company="Cursor",
+        title="Forward Deployed Engineer",
+        location="San Francisco / New York / Remote",
+        job_url="https://cursor.com/careers/forward-deployed-engineer",
+        reason="Customer workflow automation with evals, tracing, and codebase systems.",
+        jd_text=(
+            "Forward Deployed Engineers embed with customer engineering teams to ship "
+            "production-grade "
+            "Cursor workflows. Build large-scale refactors, migrations, PR review loops, "
+            "incident-to-fix "
+            "pipelines, monitoring, evals, metrics, debugging model behavior, Python, "
+            "TypeScript, and backend systems."
+        ),
+    ),
+    SuggestionSeed(
+        id="cursor-core-services",
+        company="Cursor",
+        title="Software Engineer, Core Services",
+        location="San Francisco / New York",
+        job_url="https://cursor.com/careers/software-engineer-core-services",
+        reason="Backend systems behind agent workflows and developer product surfaces.",
+        jd_text=(
+            "Own critical shared services between Cursor product surfaces and infrastructure: "
+            "auth, webhooks, "
+            "backend systems that power agent workflows, API reliability, distributed systems, "
+            "observability, "
+            "TypeScript, Python, service architecture, and production support."
+        ),
+    ),
+    SuggestionSeed(
+        id="openai-applied-evals",
+        company="OpenAI",
+        title="Software Engineer, Applied Evals",
+        location="San Francisco",
+        job_url="https://jobs.ashbyhq.com/openai/99121e6d-a542-4881-968f-4cd89d9f583c",
+        reason="Best match for agent-eval harness work and production judgment automation.",
+        jd_text=(
+            "Design and build evals and harnesses for real-world quality of advanced AI systems. "
+            "Own multi-turn and tool-using systems, agent harnesses, reliable pipelines, "
+            "backend workflows, "
+            "user-facing interfaces, evaluation signals, prompting, scaffolding, and "
+            "production feedback loops."
+        ),
+    ),
+    SuggestionSeed(
+        id="openai-api-sdk",
+        company="OpenAI",
+        title="Software Engineer, API SDK",
+        location="San Francisco / New York / Seattle",
+        job_url="https://jobs.ashbyhq.com/openai/77fbf383-bb97-4006-9b2d-e5de2d6f79d3/",
+        reason="Developer platform and API design overlap with MCP tooling and backend SDK work.",
+        jd_text=(
+            "Build official SDKs that power the OpenAI API. Work on developer experience, "
+            "API clients, "
+            "TypeScript, Python, reliability, documentation, testing, backend platform "
+            "integration, and scalable "
+            "developer tooling for production AI applications."
+        ),
+    ),
+    SuggestionSeed(
+        id="openai-codex-app",
+        company="OpenAI",
+        title="Software Engineer, Codex App",
+        location="San Francisco / London / Seattle",
+        job_url="https://jobs.ashbyhq.com/openai/60e52bb7-3418-447c-8767-a6bb8e7dedd8",
+        reason="Codebase onboarding, local agent workflows, and developer tool product fit.",
+        jd_text=(
+            "Build product experiences for the Codex desktop app and IDE extension. "
+            "Work across UI, "
+            "Node and TypeScript backend layers, IPC, process orchestration, Rust services, "
+            "developer tools, "
+            "CLIs, IDE integrations, observability, reliability, and product workflows."
+        ),
+    ),
+    SuggestionSeed(
+        id="langchain-developer-productivity",
+        company="LangChain",
+        title="Developer Productivity",
+        location="San Francisco / New York",
+        job_url="https://jobs.ashbyhq.com/langchain/e725293d-c27b-4a79-959d-19f5618f2f8e",
+        reason="LangGraph/LangSmith infra, testing, CI, and eval quality match agent tooling.",
+        jd_text=(
+            "Software Engineer on Infrastructure owning developer productivity across "
+            "LangGraph Cloud, "
+            "Platform, and LangSmith. Work on Kubernetes, Terraform, Helm, APIs, UI, "
+            "CI/CD, GitHub Actions, "
+            "pytest, prompt regression testing, evaluation suites, observability, "
+            "performance, SQL, and backend systems."
+        ),
+    ),
+    SuggestionSeed(
+        id="langchain-gtm-engineer",
+        company="LangChain",
+        title="GTM Engineer",
+        location="San Francisco",
+        job_url="https://jobs.ashbyhq.com/langchain/32c6fe13-76e0-49a2-849d-991014416987",
+        reason="Production LLM agent systems, customer workflows, and LangGraph dogfooding.",
+        jd_text=(
+            "Build AI-native customer success and onboarding systems with LangChain and LangGraph. "
+            "Architect customer agents, drive case deflection, build onboarding workflows, "
+            "use retrieval, RAG, "
+            "agentic loops, Python, TypeScript, backend APIs, full-stack applications, "
+            "and production LLM systems."
+        ),
+    ),
+    SuggestionSeed(
+        id="vellum-ai-product-engineer",
+        company="Vellum",
+        title="AI Product Engineer",
+        location="New York City",
+        job_url="https://jobs.ashbyhq.com/Vellum/475c0ddb-40c3-4d89-88c1-5f1f2c239d25",
+        reason="Agent product engineering role with strong applied AI builder signal.",
+        jd_text=(
+            "Build a platform where users generate reliable working agents. Work on AI "
+            "product engineering, "
+            "agent workflows, production AI applications, full-stack product development, "
+            "TypeScript, Python, "
+            "backend systems, evaluation, reliability, and customer-facing product quality."
         ),
     ),
 ]
@@ -178,6 +310,8 @@ def _to_suggestion(
 
 @router.get("/suggestions", response_model=list[DailyJobSuggestion])
 def list_suggestions(
+    refresh: int = Query(0, ge=0),
+    limit: int = Query(4, ge=1, le=6),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> list[DailyJobSuggestion]:
@@ -185,7 +319,16 @@ def list_suggestions(
     suggestions = [
         _to_suggestion(seed, context_text, resume_versions, db, user) for seed in SUGGESTIONS
     ]
-    return sorted(suggestions, key=lambda item: item.match_score, reverse=True)
+    available = [
+        suggestion
+        for suggestion in sorted(suggestions, key=lambda item: item.match_score, reverse=True)
+        if not suggestion.already_added
+    ]
+    if not available:
+        return []
+    start = (refresh * limit) % len(available)
+    rotated = available[start:] + available[:start]
+    return rotated[:limit]
 
 
 @router.post(
@@ -245,7 +388,9 @@ def add_suggestion(
     job.recommended_resume = suggestion.suggested_resume
     job.top_projects = to_json(top_projects)
     job.referral_search_query = suggestion.referral_query
-    job.next_action = "Open JD link, verify sponsor/location, then send referral request."
+    job.next_action = (
+        "Open exact JD, verify sponsor/location, apply manually, then mark Applied in ApplyOS."
+    )
     job.status = "Ready to apply" if suggestion.match_score >= 82 else "Saved for review"
     db.commit()
     db.refresh(job)

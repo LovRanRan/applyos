@@ -231,7 +231,7 @@ label textarea {
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin: 16px 0;
 }
@@ -802,6 +802,18 @@ label textarea {
   font-size: 13px;
 }
 
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panel-toolbar p {
+  margin: 0;
+}
+
 .match-actions a,
 .job-row a {
   display: inline-flex;
@@ -916,7 +928,7 @@ dd {
   align-items: stretch;
 }
 
-.job-row button {
+.job-select-card {
   width: 100%;
   display: grid;
   min-height: 84px;
@@ -932,18 +944,18 @@ dd {
   min-width: 0;
 }
 
-.job-row.selected button {
+.job-row.selected .job-select-card {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(34, 90, 145, 0.11);
 }
 
-.job-row span,
-.job-row em {
+.job-select-card > span,
+.job-select-card > em {
   color: var(--muted);
   font-style: normal;
 }
 
-.job-row button > span {
+.job-select-card > span {
   max-width: 100%;
   font-size: 13px;
   font-weight: 800;
@@ -951,14 +963,14 @@ dd {
   overflow-wrap: anywhere;
 }
 
-.job-row button > strong {
+.job-select-card > strong {
   max-width: 100%;
   font-size: 16px;
   line-height: 1.18;
   overflow-wrap: anywhere;
 }
 
-.job-row button > em {
+.job-select-card > em {
   justify-self: start;
   border: 1px solid #b8d2ea;
   border-radius: 999px;
@@ -974,11 +986,57 @@ dd {
   padding: 0 10px;
 }
 
+.job-row-side {
+  display: grid;
+  min-width: 148px;
+  gap: 8px;
+  align-content: start;
+}
+
+.compact-action {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.status-pill,
+.job-followup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.status-pill.applied {
+  border: 1px solid #b9dbc9;
+  background: #eef8f2;
+  color: var(--green);
+}
+
+.job-followup {
+  border: 1px solid #ead0a9;
+  background: #fff8ed;
+  color: var(--amber);
+}
+
 .tracker-grid .job-row {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.tracker-grid .job-row a {
+.tracker-grid .job-row-side {
+  grid-template-columns: 1fr;
+  min-width: 0;
+}
+
+.tracker-grid .job-row a,
+.tracker-grid .compact-action,
+.tracker-grid .status-pill,
+.tracker-grid .job-followup {
   width: 100%;
 }
 
@@ -1113,12 +1171,13 @@ dd {
     .tab-panel-grid.even,
     .side-column,
     .match-card,
+  .panel-toolbar,
   .match-heading,
   .ask-form,
   .breakdown,
   dl,
   .job-row,
-  .job-row button {
+  .job-select-card {
     grid-template-columns: 1fr;
   }
 

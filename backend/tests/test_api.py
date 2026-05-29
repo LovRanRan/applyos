@@ -62,6 +62,23 @@ def test_protected_job_flow(client: TestClient, auth_headers: dict[str, str]) ->
     dashboard = client.get("/dashboard/summary", headers=auth_headers)
     assert dashboard.status_code == 200
     assert dashboard.json()["total_jobs"] == 1
+    assert dashboard.json()["applied_jobs"] == 0
+
+    applied = client.put(
+        f"/jobs/{job_id}",
+        headers=auth_headers,
+        json={
+            "status": "Applied",
+            "follow_up_date": "2026-06-03",
+            "next_action": "Follow up on application status.",
+        },
+    )
+    assert applied.status_code == 200
+    assert applied.json()["status"] == "Applied"
+
+    dashboard = client.get("/dashboard/summary", headers=auth_headers)
+    assert dashboard.status_code == 200
+    assert dashboard.json()["applied_jobs"] == 1
 
 
 def test_resume_upload_and_daily_suggestion_add(
@@ -101,8 +118,14 @@ def test_resume_upload_and_daily_suggestion_add(
 
     suggestions = client.get("/daily/suggestions", headers=auth_headers)
     assert suggestions.status_code == 200
+    assert len(suggestions.json()) == 4
     first_suggestion = suggestions.json()[0]
     assert first_suggestion["job_url"].startswith("https://")
+    assert not first_suggestion["job_url"].rstrip("/").endswith("/careers")
+    assert (
+        "/careers/" in first_suggestion["job_url"]
+        or "jobs.ashbyhq.com" in first_suggestion["job_url"]
+    )
     assert first_suggestion["match_score"] > 0
     assert first_suggestion["matched_terms"]
     suggestion_id = first_suggestion["id"]
@@ -111,6 +134,11 @@ def test_resume_upload_and_daily_suggestion_add(
     assert added.status_code == 201
     assert added.json()["source"] == "daily suggestion"
     assert added.json()["apply_readiness"] == first_suggestion["match_score"]
+    assert added.json()["next_action"].startswith("Open exact JD")
+
+    refreshed = client.get("/daily/suggestions?refresh=1", headers=auth_headers)
+    assert refreshed.status_code == 200
+    assert suggestion_id not in {suggestion["id"] for suggestion in refreshed.json()}
 
     analytics = client.get("/analytics/tech-stack", headers=auth_headers)
     assert analytics.status_code == 200

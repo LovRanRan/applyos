@@ -333,6 +333,7 @@ class DashboardSummary(BaseModel):
     total_jobs: int
     high_readiness_jobs: int
     ready_to_apply: int
+    applied_jobs: int
     outreach_drafts: int
     followups_due: int
     applications_by_status: dict[str, int]

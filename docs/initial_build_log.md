@@ -106,6 +106,20 @@ Date: 2026-05-29
 - Browser smoke test: login -> JD Workbench saved job card -> Outreach tracker job card; no text overlap and `document.scrollWidth === documentElement.clientWidth`.
 - Verification: `npm run build`.
 
+## V2.4 Exact JD Refresh + Applied Tracker
+
+Date: 2026-05-29
+
+- Problem: `Open JD` opened generic company career homepages, which made it hard to locate the exact role.
+- Fix: replaced generic career-home seeds with a larger curated exact-role pool from official company / Ashby job pages.
+- Added Daily Matches batch rotation: `Refresh Matches` loads the next exact-JD batch and skips jobs already saved in the tracker.
+- Added an `Applied` metric to the dashboard summary.
+- Added `Mark Applied` on saved job rows; clicking it changes job status to `Applied`, lowers `Ready to apply`, and schedules a 5-day follow-up.
+- Added follow-up visibility in the selected job decision panel and saved job rows.
+- UI cleanup: saved job selection and side actions are now separate controls, so `Exact JD`, `Mark Applied`, `Applied`, and follow-up labels do not collide.
+- Browser smoke test: Daily Matches -> Refresh Matches -> Add exact JD -> Workbench -> Mark Applied; metrics update and `document.scrollWidth === documentElement.clientWidth`.
+- Verification: `uv run pytest`; `npm run build`.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
@@ -120,6 +134,7 @@ Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
 - Next.js frontend with login/register, JD intake, selected-job analysis, decision package, daily actions, referral contact form, outreach draft generation, and summary tables.
 - V1.1 additions: resume upload, daily role push, and one-click add to tracker.
 - V2 additions: command-center UI, profile-aware daily match scoring, explicit Add feedback, JD links, and tech-stack analytics.
+- V2.4 additions: exact single-role JD links, next-batch refresh, Applied metric, and 5-day follow-up tracking after manual submission.
 - Root setup docs, backend/frontend env examples, Dockerfiles, and Docker Compose draft.
 
 ## Agent Boundary
@@ -153,6 +168,6 @@ Observed local dev limitation:
 - Add Alembic migrations before schema changes become frequent.
 - Add real OpenAI structured output once the user provides a real key.
 - Add application-detail page and editable decision packages.
-- Add saved daily job discovery sources.
+- Add live daily job discovery sources after the exact-link curated pool is validated.
 - Add Railway services and environment variables in the next session.
 - Recheck the current Next/PostCSS npm audit warning before production deploy.

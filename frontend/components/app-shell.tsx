@@ -85,6 +85,12 @@ function scoreClass(score?: number | null) {
   return "score-watch";
 }
 
+function followUpDate(daysFromToday: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromToday);
+  return date.toISOString().slice(0, 10);
+}
+
 export function ApplyOSApp() {
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState("haichuan@example.com");
@@ -96,6 +102,7 @@ export function ApplyOSApp() {
   const [messages, setMessages] = useState<OutreachMessage[]>([]);
   const [resumes, setResumes] = useState<ResumeAsset[]>([]);
   const [suggestions, setSuggestions] = useState<DailyJobSuggestion[]>([]);
+  const [matchRefreshIndex, setMatchRefreshIndex] = useState(0);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileForm, setProfileForm] = useState<ProfilePayload>(defaultProfile);
   const [analytics, setAnalytics] = useState<TechStackAnalytics | null>(null);
@@ -158,7 +165,7 @@ export function ApplyOSApp() {
     }, 1600);
   }
 
-  async function refresh(nextToken = token) {
+  async function refresh(nextToken = token, suggestionRefresh = matchRefreshIndex) {
     if (!nextToken) return;
     const profileRequest = api.profile(nextToken).catch((error: unknown) => {
       if (error instanceof ApiError && error.status === 404) return null;
@@ -182,7 +189,7 @@ export function ApplyOSApp() {
       api.contacts(nextToken),
       api.messages(nextToken),
       api.resumes(nextToken),
-      api.dailySuggestions(nextToken),
+      api.dailySuggestions(nextToken, suggestionRefresh),
       api.techStackAnalytics(nextToken),
       api.agentBrief(nextToken),
       profileRequest
@@ -217,9 +224,14 @@ export function ApplyOSApp() {
     const stored = window.localStorage.getItem("applyos_token");
     if (stored) {
       setToken(stored);
-      refresh(stored).catch((error: unknown) => {
-        pushNotice(error instanceof Error ? error.message : "Failed to restore session", "warning");
-      });
+      refresh(stored)
+        .then(() => {
+          pushNotice("Connected. Workspace restored.", "success");
+          logAgent("Session restored", "Loaded saved token, profile, jobs, exact JD matches, and analytics.");
+        })
+        .catch((error: unknown) => {
+          pushNotice(error instanceof Error ? error.message : "Failed to restore session", "warning");
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -266,7 +278,8 @@ export function ApplyOSApp() {
       setProfile(saved);
       setProfileForm(payload);
       setProfileEditing(false);
-      await refresh();
+      setMatchRefreshIndex(0);
+      await refresh(token, 0);
       logAgent("Profile locked", "Saved candidate profile and refreshed resume-aware matches.");
       pushNotice("Profile saved. Daily matches now use this profile.", "success");
       finishAction("save-profile");
@@ -300,7 +313,8 @@ export function ApplyOSApp() {
         source: fileText ? "file upload" : "manual paste"
       });
       formElement.reset();
-      await refresh();
+      setMatchRefreshIndex(0);
+      await refresh(token, 0);
       logAgent("Resume evidence updated", "Saved resume text and refreshed daily match scores.");
       pushNotice("Resume saved. Daily matches now include resume evidence.", "success");
       finishAction("upload-resume");
@@ -332,6 +346,48 @@ export function ApplyOSApp() {
       pushNotice(error instanceof Error ? error.message : "Failed to add suggestion", "warning");
     } finally {
       setAddingSuggestionId(null);
+    }
+  }
+
+  async function refreshMatches() {
+    if (!token) return;
+    const nextIndex = matchRefreshIndex + 1;
+    try {
+      setBusyAction("refresh-matches");
+      pushNotice("Loading the next exact-JD batch...");
+      await refresh(token, nextIndex);
+      setMatchRefreshIndex(nextIndex);
+      setActiveTab("matches");
+      logAgent(
+        "Daily matches rotated",
+        "Loaded the next batch of exact role pages and skipped jobs already in the tracker."
+      );
+      pushNotice("Daily matches refreshed with the next exact-JD batch.", "success");
+      finishAction("refresh-matches");
+    } catch (error) {
+      setBusyAction(null);
+      pushNotice(error instanceof Error ? error.message : "Failed to refresh matches", "warning");
+    }
+  }
+
+  async function markJobApplied(job: Job) {
+    if (!token) return;
+    const actionId = `apply-job-${job.id}`;
+    try {
+      setBusyAction(actionId);
+      pushNotice(`Marking ${job.company} as Applied and scheduling follow-up...`);
+      await api.updateJob(token, job.id, {
+        status: "Applied",
+        follow_up_date: followUpDate(5),
+        next_action: "Follow up on application or referral status in 5 days."
+      });
+      await refresh();
+      logAgent("Application tracked", `${job.company} marked Applied with a 5-day follow-up.`);
+      pushNotice(`${job.company} marked Applied. Follow-up added to tracker.`, "success");
+      finishAction(actionId);
+    } catch (error) {
+      setBusyAction(null);
+      pushNotice(error instanceof Error ? error.message : "Failed to mark Applied", "warning");
     }
   }
 
@@ -600,6 +656,7 @@ export function ApplyOSApp() {
           value={summary?.ready_to_apply ?? 0}
           icon={<CheckCircle2 />}
         />
+        <Metric label="Applied" value={summary?.applied_jobs ?? 0} icon={<ClipboardCheck />} />
         <Metric label="Follow-ups due" value={summary?.followups_due ?? 0} icon={<Inbox />} />
         <Metric label="Profile ready" value={`${profileCompleteness}%`} icon={<UserRoundCog />} />
       </section>
@@ -679,17 +736,42 @@ export function ApplyOSApp() {
               icon={<Sparkles size={18} />}
               kicker="Daily role push"
               title="Resume-aware matches"
-              action={`${suggestions.length} roles`}
+              action={`${suggestions.length} exact JDs`}
             />
+            <div className="panel-toolbar">
+              <p className="muted">
+                Open JD now lands on a specific role page. Refresh skips jobs already added to your tracker.
+              </p>
+              <ActionButton
+                actionId="refresh-matches"
+                busyAction={busyAction}
+                className="secondary"
+                icon={<RefreshCw size={17} />}
+                loadingLabel="Loading next batch"
+                onClick={refreshMatches}
+                successAction={successAction}
+                successLabel="New batch"
+                type="button"
+              >
+                <RefreshCw size={17} /> Refresh Matches
+              </ActionButton>
+            </div>
             <div className="match-list">
-              {suggestions.map((suggestion) => (
+              {suggestions.length === 0 ? (
+                <p className="muted">
+                  No new exact-JD matches left in the current pool. Add more seed roles or reset tracker
+                  statuses after review.
+                </p>
+              ) : (
+                suggestions.map((suggestion) => (
                 <DailyMatchCard
                   adding={addingSuggestionId === suggestion.id}
                   key={suggestion.id}
                   onAdd={() => addSuggestedJob(suggestion)}
                   suggestion={suggestion}
                 />
-              ))}
+                ))
+              )}
             </div>
           </section>
             <div className="tab-side">
@@ -770,7 +852,14 @@ export function ApplyOSApp() {
               title="Saved jobs"
               action={`${jobs.length} jobs`}
             />
-            <JobList jobs={jobs} onSelect={setSelectedJobId} selectedJobId={selectedJobId} />
+            <JobList
+              busyAction={busyAction}
+              jobs={jobs}
+              onMarkApplied={markJobApplied}
+              onSelect={setSelectedJobId}
+              selectedJobId={selectedJobId}
+              successAction={successAction}
+            />
           </section>
           </div>
         ) : null}
@@ -820,7 +909,14 @@ export function ApplyOSApp() {
                 action={`${jobs.length} jobs`}
               />
               <div className="tracker-grid">
-                <JobList jobs={jobs} onSelect={setSelectedJobId} selectedJobId={selectedJobId} />
+                <JobList
+                  busyAction={busyAction}
+                  jobs={jobs}
+                  onMarkApplied={markJobApplied}
+                  onSelect={setSelectedJobId}
+                  selectedJobId={selectedJobId}
+                  successAction={successAction}
+                />
                 <ContactAndDrafts contacts={contacts} messages={messages} />
               </div>
             </section>
@@ -1200,7 +1296,7 @@ function DailyMatchCard({
         <span>{suggestion.score_hint}</span>
         <strong>{suggestion.suggested_resume}</strong>
         <a href={suggestion.job_url} rel="noreferrer" target="_blank">
-          <ExternalLink size={15} /> Open JD
+          <ExternalLink size={15} /> Open Exact JD
         </a>
         <button
           className={`${adding ? "is-busy" : ""} ${suggestion.already_added ? "is-success" : ""}`}
@@ -1622,6 +1718,8 @@ function DecisionPanel({
         <dd>{selectedJob.title}</dd>
         <dt>Status</dt>
         <dd>{selectedJob.status}</dd>
+        <dt>Follow-up</dt>
+        <dd>{selectedJob.follow_up_date ?? "Set after marking Applied."}</dd>
         <dt>Resume</dt>
         <dd>{selectedJob.recommended_resume ?? "Run analysis or add from daily matches."}</dd>
         <dt>Next Action</dt>
@@ -1634,11 +1732,17 @@ function DecisionPanel({
 function JobList({
   jobs,
   selectedJobId,
-  onSelect
+  onSelect,
+  onMarkApplied,
+  busyAction,
+  successAction
 }: {
   jobs: Job[];
   selectedJobId: number | null;
   onSelect: (id: number) => void;
+  onMarkApplied?: (job: Job) => void;
+  busyAction?: string | null;
+  successAction?: string | null;
 }) {
   return (
     <div className="job-list">
@@ -1650,16 +1754,40 @@ function JobList({
             className={`job-row ${selectedJobId === job.id ? "selected" : ""}`}
             key={job.id}
           >
-            <button onClick={() => onSelect(job.id)} type="button">
+            <button className="job-select-card" onClick={() => onSelect(job.id)} type="button">
               <span>{job.company}</span>
               <strong>{job.title}</strong>
               <em>{job.apply_readiness ? `${job.apply_readiness}/100` : job.status}</em>
             </button>
-            {job.job_url ? (
-              <a href={job.job_url} rel="noreferrer" target="_blank">
-                <Link2 size={14} /> JD
-              </a>
-            ) : null}
+            <div className="job-row-side">
+              {job.job_url ? (
+                <a href={job.job_url} rel="noreferrer" target="_blank">
+                  <Link2 size={14} /> Exact JD
+                </a>
+              ) : null}
+              {job.status === "Applied" ? (
+                <span className="status-pill applied">
+                  <CheckCircle2 size={14} /> Applied
+                </span>
+              ) : onMarkApplied ? (
+                <ActionButton
+                  actionId={`apply-job-${job.id}`}
+                  busyAction={busyAction ?? null}
+                  className="secondary compact-action"
+                  icon={<ClipboardCheck size={15} />}
+                  loadingLabel="Marking"
+                  onClick={() => onMarkApplied(job)}
+                  successAction={successAction ?? null}
+                  successLabel="Applied"
+                  type="button"
+                >
+                  <ClipboardCheck size={15} /> Mark Applied
+                </ActionButton>
+              ) : null}
+              {job.follow_up_date ? (
+                <span className="job-followup">Follow up {job.follow_up_date}</span>
+              ) : null}
+            </div>
           </article>
         ))
       )}

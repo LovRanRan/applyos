@@ -21,6 +21,7 @@ def summary(user: User = Depends(current_user), db: Session = Depends(get_db)) -
         total_jobs=len(jobs),
         high_readiness_jobs=sum(1 for job in jobs if (job.apply_readiness or 0) >= 85),
         ready_to_apply=sum(1 for job in jobs if job.status == "Ready to apply"),
+        applied_jobs=sum(1 for job in jobs if job.status == "Applied"),
         outreach_drafts=len([message for message in messages if message.status == "draft"]),
         followups_due=sum(
             1 for job in jobs if job.follow_up_date is not None and job.follow_up_date <= today

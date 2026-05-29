@@ -9,6 +9,7 @@ export type DashboardSummary = {
   total_jobs: number;
   high_readiness_jobs: number;
   ready_to_apply: number;
+  applied_jobs: number;
   outreach_drafts: number;
   followups_due: number;
   applications_by_status: Record<string, number>;
@@ -217,6 +218,16 @@ export const api = {
       notes?: string;
     }
   ) => request<Job>("/jobs", { method: "POST", body: JSON.stringify(payload) }, token),
+  updateJob: (
+    token: string,
+    jobId: number,
+    payload: {
+      status?: string;
+      next_action?: string;
+      follow_up_date?: string;
+      notes?: string;
+    }
+  ) => request<Job>(`/jobs/${jobId}`, { method: "PUT", body: JSON.stringify(payload) }, token),
   analyzeJob: (token: string, jobId: number) =>
     request<AgentAnalysis>(`/jobs/${jobId}/analyze`, { method: "POST" }, token),
   contacts: (token: string) => request<Contact[]>("/contacts", {}, token),
@@ -231,8 +242,8 @@ export const api = {
   resumes: (token: string) => request<ResumeAsset[]>("/resumes", {}, token),
   uploadResume: (token: string, payload: { name: string; content: string; source?: string }) =>
     request<ResumeAsset>("/resumes", { method: "POST", body: JSON.stringify(payload) }, token),
-  dailySuggestions: (token: string) =>
-    request<DailyJobSuggestion[]>("/daily/suggestions", {}, token),
+  dailySuggestions: (token: string, refresh = 0) =>
+    request<DailyJobSuggestion[]>(`/daily/suggestions?refresh=${refresh}`, {}, token),
   addSuggestion: (token: string, suggestionId: string) =>
     request<Job>(`/daily/suggestions/${suggestionId}/add`, { method: "POST" }, token),
   techStackAnalytics: (token: string) =>
