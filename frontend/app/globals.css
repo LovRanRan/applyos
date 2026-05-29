@@ -21,6 +21,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--ink);
   font-family:
@@ -172,6 +173,7 @@ label textarea {
 
 .workspace {
   width: min(1580px, 100%);
+  min-width: 0;
   margin: 0 auto;
   padding: 24px;
 }
@@ -310,6 +312,7 @@ label textarea {
 }
 
 .tab-surface {
+  min-width: 0;
   margin-top: 16px;
 }
 
@@ -318,6 +321,7 @@ label textarea {
   grid-template-columns: minmax(0, 1fr) 390px;
   gap: 16px;
   align-items: start;
+  min-width: 0;
 }
 
 .tab-panel-grid.even {
@@ -327,6 +331,7 @@ label textarea {
 .tab-side {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .agent-main {
@@ -348,6 +353,7 @@ label textarea {
 }
 
 .panel {
+  min-width: 0;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -889,6 +895,7 @@ dd {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 420px;
   gap: 16px;
+  min-width: 0;
 }
 
 .job-list,
@@ -898,26 +905,31 @@ dd {
 .action-list {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .job-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 70px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  min-width: 0;
+  align-items: stretch;
 }
 
 .job-row button {
   width: 100%;
   display: grid;
-  min-height: 68px;
-  grid-template-columns: 120px minmax(0, 1fr) auto;
+  min-height: 84px;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: start;
-  align-items: center;
-  gap: 12px;
+  align-content: center;
+  gap: 6px;
   border-color: var(--line);
   background: #fff;
   color: var(--ink);
+  padding: 12px 14px;
   text-align: left;
+  min-width: 0;
 }
 
 .job-row.selected button {
@@ -931,8 +943,48 @@ dd {
   font-style: normal;
 }
 
+.job-row button > span {
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.job-row button > strong {
+  max-width: 100%;
+  font-size: 16px;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.job-row button > em {
+  justify-self: start;
+  border: 1px solid #b8d2ea;
+  border-radius: 999px;
+  background: #f1f7fd;
+  color: var(--blue);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.job-row a {
+  min-width: 64px;
+  padding: 0 10px;
+}
+
+.tracker-grid .job-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tracker-grid .job-row a {
+  width: 100%;
+}
+
 .records-grid {
   grid-template-columns: 1fr;
+  min-width: 0;
 }
 
 .record-block {

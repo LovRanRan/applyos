@@ -96,6 +96,16 @@ Date: 2026-05-29
 - Browser smoke test: login -> Agent Brief loads -> Profile save locks read-only view -> Daily Match Add opens workbench -> Resume Gap runs -> Ask ApplyOS returns referral next actions.
 - Verification: `uv run ruff check .`, `uv run mypy app tests`, `uv run pytest`, `npm run build`, and `npm run typecheck`.
 
+## V2.2 UI Overlap Fix
+
+Date: 2026-05-29
+
+- Problem: saved job rows used a fixed three-column layout, so company, title, and readiness score overlapped inside the narrow JD Workbench / Outreach side panels.
+- Fix: rebuilt saved job rows as vertical cards with a readiness badge and made tracker rows stack the JD link underneath in narrow containers.
+- Added `min-width: 0` to nested grid containers and disabled horizontal page overflow to prevent panels from pushing the whole workspace sideways.
+- Browser smoke test: login -> JD Workbench saved job card -> Outreach tracker job card; no text overlap and `document.scrollWidth === documentElement.clientWidth`.
+- Verification: `npm run build`.
+
 ## Scope
 
 Built the first ApplyOS full-stack MVP and stopped before Railway deployment.
